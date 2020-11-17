@@ -9,6 +9,46 @@ rules:
 - apiGroups:
   - servicebroker.metabroker.suse.com
   resources:
+  - offerings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - servicebroker.metabroker.suse.com
+  resources:
+  - offerings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - servicebroker.metabroker.suse.com
+  resources:
+  - plans
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - servicebroker.metabroker.suse.com
+  resources:
+  - plans/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - servicebroker.metabroker.suse.com
+  resources:
   - providers
   verbs:
   - create
