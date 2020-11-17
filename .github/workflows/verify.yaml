@@ -1,0 +1,48 @@
+name: Verify
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+jobs:
+  verify:
+    name: Generated code
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ~1
+    - name: Operator go mod tidy
+      working-directory: ./operator
+      run: |
+        go mod tidy
+        if ! git diff-index --quiet HEAD --; then
+          >&2 echo "Files changed by 'go mod tidy' should be committed"
+          exit 1
+        fi
+    - name: Operator make generate
+      working-directory: ./operator
+      run: |
+        make generate
+        if ! git diff-index --quiet HEAD --; then
+          >&2 echo "Files changed by 'make generate' should be committed"
+          exit 1
+        fi
+    - name: Operator make manifests
+      working-directory: ./operator
+      run: |
+        make manifests
+        if ! git diff-index --quiet HEAD --; then
+          >&2 echo "Files changed by 'make manifests' should be committed"
+          exit 1
+        fi
+    - name: Vet
+      working-directory: ./operator
+      run: go vet ./...
+    - name: Build
+      working-directory: ./operator
+      run: go build ./...
