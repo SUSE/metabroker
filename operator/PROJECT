@@ -1,0 +1,13 @@
+domain: metabroker.suse.com
+repo: github.com/SUSE/metabroker/operator
+resources:
+- group: servicebroker
+  kind: Provider
+  version: v1alpha1
+- group: servicebroker
+  kind: Offering
+  version: v1alpha1
+- group: servicebroker
+  kind: Plan
+  version: v1alpha1
+version: "2"
