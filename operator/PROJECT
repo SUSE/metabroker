@@ -1,0 +1,3 @@
+domain: metabroker.suse.com
+repo: github.com/SUSE/metabroker/operator
+version: "2"
