@@ -4,4 +4,7 @@ resources:
 - group: servicebroker
   kind: Provider
   version: v1alpha1
+- group: servicebroker
+  kind: Offering
+  version: v1alpha1
 version: "2"

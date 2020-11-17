@@ -1,0 +1,20 @@
+# permissions for end users to view offerings.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: offering-viewer-role
+rules:
+- apiGroups:
+  - servicebroker.metabroker.suse.com
+  resources:
+  - offerings
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - servicebroker.metabroker.suse.com
+  resources:
+  - offerings/status
+  verbs:
+  - get
