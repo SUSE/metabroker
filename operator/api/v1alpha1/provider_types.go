@@ -20,27 +20,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// ProviderSpec defines the desired state of Provider
+// ProviderSpec defines the Service Provider spec.
 type ProviderSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Provider. Edit Provider_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The version of the Provider.
+	Version string `json:"version,omitempty"`
+	// Provider upgrade contraints.
+	Upgrades UpgradesSpec `json:"upgrades,omitempty"`
 }
 
-// ProviderStatus defines the observed state of Provider
+// UpgradesSpec defines the validation for upgrades of Service Providers.
+type UpgradesSpec struct {
+	// Version constraints the Provider can upgrade from.
+	// https://github.com/Masterminds/semver#checking-version-constraints
+	From string `json:"from,omitempty"`
+}
+
+// ProviderStatus defines the observed state of Provider.
 type ProviderStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// TODO: implement.
 }
 
 // +kubebuilder:object:root=true
 
-// Provider is the Schema for the providers API
+// Provider is the Schema for the providers API.
 type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -51,7 +53,7 @@ type Provider struct {
 
 // +kubebuilder:object:root=true
 
-// ProviderList contains a list of Provider
+// ProviderList contains a list of Provider.
 type ProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
