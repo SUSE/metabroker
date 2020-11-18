@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: Plan is the Schema for the plans API
+      description: Plan is the Schema for the plans API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -32,15 +32,63 @@ spec:
         metadata:
           type: object
         spec:
-          description: PlanSpec defines the desired state of Plan
+          description: PlanSpec defines the Service Plan spec.
           properties:
-            foo:
-              description: Foo is an example field of Plan. Edit Plan_types.go to
-                remove/update
+            binding:
+              description: PlanBindingSpec defines the Binding spec for a Plan.
+              properties:
+                credentials:
+                  description: PlanBindingCredentialsSpec defines the Credentials
+                    spec for a Binding.
+                  properties:
+                    script:
+                      description: PlanBindingCredentialsScriptSpec defines the Script
+                        spec for a Binding Credential.
+                      properties:
+                        implementation:
+                          type: string
+                        type:
+                          type: string
+                      type: object
+                  type: object
+              type: object
+            description:
+              description: A description for the Plan.
               type: string
+            id:
+              description: A unique ID for the Plan.
+              type: string
+            offering:
+              description: The name of the Offering this Plan belongs to.
+              type: string
+            provisioning:
+              description: PlanProvisioningSpec defines the Provisioning spec for
+                a Plan.
+              properties:
+                chart:
+                  description: PlanProvisioningChartSpec defines the Chart spec for
+                    a Provisioning.
+                  properties:
+                    url:
+                      type: string
+                  type: object
+                values:
+                  description: PlanProvisioningValuesSpec defines the Values spec
+                    for a Provisioning. It includes the JSON schema for validation,
+                    the default values that can be overriden by the user, and the
+                    static values that enforce plan-specific configuration.
+                  properties:
+                    default:
+                      type: string
+                    schema:
+                      type: string
+                    static:
+                      type: string
+                  type: object
+              type: object
           type: object
         status:
-          description: PlanStatus defines the observed state of Plan
+          description: PlanStatus defines the observed state of Plan.
           type: object
       type: object
   version: v1alpha1
