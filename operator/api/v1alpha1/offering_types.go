@@ -20,27 +20,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// OfferingSpec defines the desired state of Offering
+// OfferingSpec defines the Service Offering spec.
 type OfferingSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// The name of the Provider this Offering belongs to.
+	Provider string `json:"provider,omitempty"`
 
-	// Foo is an example field of Offering. Edit Offering_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// A unique ID for the Offering.
+	ID string `json:"id,omitempty"`
+	// A description for the Offering.
+	Description string `json:"description,omitempty"`
+	// Whether the Plans linked to this Offering are bindable or not.
+	Bindable bool `json:"bindable,omitempty"`
 }
 
-// OfferingStatus defines the observed state of Offering
+// OfferingStatus defines the observed state of Offering.
 type OfferingStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// TODO: implement.
 }
 
 // +kubebuilder:object:root=true
 
-// Offering is the Schema for the offerings API
+// Offering is the Schema for the offerings API.
 type Offering struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -51,7 +51,7 @@ type Offering struct {
 
 // +kubebuilder:object:root=true
 
-// OfferingList contains a list of Offering
+// OfferingList contains a list of Offering.
 type OfferingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

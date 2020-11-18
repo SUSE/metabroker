@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: Offering is the Schema for the offerings API
+      description: Offering is the Schema for the offerings API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -32,15 +32,24 @@ spec:
         metadata:
           type: object
         spec:
-          description: OfferingSpec defines the desired state of Offering
+          description: OfferingSpec defines the Service Offering spec.
           properties:
-            foo:
-              description: Foo is an example field of Offering. Edit Offering_types.go
-                to remove/update
+            bindable:
+              description: Whether the Plans linked to this Offering are bindable
+                or not.
+              type: boolean
+            description:
+              description: A description for the Offering.
+              type: string
+            id:
+              description: A unique ID for the Offering.
+              type: string
+            provider:
+              description: The name of the Provider this Offering belongs to.
               type: string
           type: object
         status:
-          description: OfferingStatus defines the observed state of Offering
+          description: OfferingStatus defines the observed state of Offering.
           type: object
       type: object
   version: v1alpha1
