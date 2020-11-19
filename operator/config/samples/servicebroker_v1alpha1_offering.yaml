@@ -3,5 +3,6 @@ kind: Offering
 metadata:
   name: offering-sample
 spec:
-  # Add fields here
-  foo: bar
+  provider: provider-sample
+  description: A sample offering.
+  bindable: true
