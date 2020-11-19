@@ -5,6 +5,7 @@ resources:
 - bases/servicebroker.metabroker.suse.com_providers.yaml
 - bases/servicebroker.metabroker.suse.com_offerings.yaml
 - bases/servicebroker.metabroker.suse.com_plans.yaml
+- bases/servicebroker.metabroker.suse.com_instances.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
@@ -13,6 +14,7 @@ patchesStrategicMerge:
 #- patches/webhook_in_providers.yaml
 #- patches/webhook_in_offerings.yaml
 #- patches/webhook_in_plans.yaml
+#- patches/webhook_in_instances.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
@@ -20,6 +22,7 @@ patchesStrategicMerge:
 #- patches/cainjection_in_providers.yaml
 #- patches/cainjection_in_offerings.yaml
 #- patches/cainjection_in_plans.yaml
+#- patches/cainjection_in_instances.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.
