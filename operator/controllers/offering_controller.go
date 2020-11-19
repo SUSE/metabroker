@@ -18,8 +18,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,7 +31,7 @@ import (
 	servicebrokerv1alpha1 "github.com/SUSE/metabroker/operator/api/v1alpha1"
 )
 
-// OfferingReconciler reconciles a Offering object
+// OfferingReconciler implements the Reconcile method for the Offering resource.
 type OfferingReconciler struct {
 	client.Client
 	Log    logr.Logger
@@ -37,15 +41,67 @@ type OfferingReconciler struct {
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=offerings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=offerings/status,verbs=get;update;patch
 
-func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("offering", req.NamespacedName)
+const offeringReconcileTimeout = time.Second * 10
 
-	// your logic here
+// Reconcile reconciles an Offering resource.
+func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), offeringReconcileTimeout)
+	defer cancel()
+
+	log := r.Log.WithValues("offering", req.NamespacedName)
+
+	offering := &servicebrokerv1alpha1.Offering{}
+	if err := r.Get(ctx, req.NamespacedName, offering); err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("Offering resource deleted")
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	offeringNeedsUpdate := false
+
+	if len(offering.OwnerReferences) == 0 {
+		if err := r.setOwnership(ctx, &req, offering); err != nil {
+			return ctrl.Result{}, nil
+		}
+		offeringNeedsUpdate = true
+	}
+
+	if offering.Spec.ID == "" {
+		id := uuid.Must(uuid.NewUUID()) // UUID v1
+		offering.Spec.ID = id.String()
+		offeringNeedsUpdate = true
+	}
+
+	if offeringNeedsUpdate {
+		if err := r.Update(ctx, offering); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	return ctrl.Result{}, nil
 }
 
+func (r *OfferingReconciler) setOwnership(
+	ctx context.Context,
+	req *ctrl.Request,
+	offering *servicebrokerv1alpha1.Offering,
+) error {
+	providerNamespacedName := req.NamespacedName
+	providerNamespacedName.Name = offering.Spec.Provider
+	provider := &servicebrokerv1alpha1.Provider{}
+	if err := r.Get(ctx, providerNamespacedName, provider); err != nil {
+		return fmt.Errorf("failed to set ownership: %w", err)
+	}
+	if err := ctrl.SetControllerReference(provider, offering, r.Scheme); err != nil {
+		return fmt.Errorf("failed to set ownership: %w", err)
+	}
+	return nil
+}
+
+// SetupWithManager configures the controller manager for the Offering resource.
 func (r *OfferingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&servicebrokerv1alpha1.Offering{}).

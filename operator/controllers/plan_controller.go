@@ -18,8 +18,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,7 +31,7 @@ import (
 	servicebrokerv1alpha1 "github.com/SUSE/metabroker/operator/api/v1alpha1"
 )
 
-// PlanReconciler reconciles a Plan object
+// PlanReconciler implements the Reconcile method for the Plan resource.
 type PlanReconciler struct {
 	client.Client
 	Log    logr.Logger
@@ -37,15 +41,67 @@ type PlanReconciler struct {
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=plans,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=plans/status,verbs=get;update;patch
 
-func (r *PlanReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("plan", req.NamespacedName)
+const planReconcileTimeout = time.Second * 10
 
-	// your logic here
+// Reconcile reconciles a Plan resource.
+func (r *PlanReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), planReconcileTimeout)
+	defer cancel()
+
+	log := r.Log.WithValues("plan", req.NamespacedName)
+
+	plan := &servicebrokerv1alpha1.Plan{}
+	if err := r.Get(ctx, req.NamespacedName, plan); err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("Plan resource deleted")
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	planNeedsUpdate := false
+
+	if len(plan.OwnerReferences) == 0 {
+		if err := r.setOwnership(ctx, &req, plan); err != nil {
+			return ctrl.Result{}, nil
+		}
+		planNeedsUpdate = true
+	}
+
+	if plan.Spec.ID == "" {
+		id := uuid.Must(uuid.NewUUID()) // UUID v1
+		plan.Spec.ID = id.String()
+		planNeedsUpdate = true
+	}
+
+	if planNeedsUpdate {
+		if err := r.Update(ctx, plan); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	return ctrl.Result{}, nil
 }
 
+func (r *PlanReconciler) setOwnership(
+	ctx context.Context,
+	req *ctrl.Request,
+	plan *servicebrokerv1alpha1.Plan,
+) error {
+	offeringNamespacedName := req.NamespacedName
+	offeringNamespacedName.Name = plan.Spec.Offering
+	offering := &servicebrokerv1alpha1.Offering{}
+	if err := r.Get(ctx, offeringNamespacedName, offering); err != nil {
+		return fmt.Errorf("failed to set ownership: %w", err)
+	}
+	if err := ctrl.SetControllerReference(offering, plan, r.Scheme); err != nil {
+		return fmt.Errorf("failed to set ownership: %w", err)
+	}
+	return nil
+}
+
+// SetupWithManager configures the controller manager for the Plan resource.
 func (r *PlanReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&servicebrokerv1alpha1.Plan{}).
