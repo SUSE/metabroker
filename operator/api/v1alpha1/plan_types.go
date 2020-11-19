@@ -23,51 +23,71 @@ import (
 // PlanSpec defines the Service Plan spec.
 type PlanSpec struct {
 	// The name of the Offering this Plan belongs to.
-	Offering string `json:"offering,omitempty"`
-
-	// A unique ID for the Plan.
+	Offering string `json:"offering"`
+	// A unique ID for the Plan to be used by OSBAPI. If not provided, a UUID v1 is auto-generated.
+	// +optional
 	ID string `json:"id,omitempty"`
 	// A description for the Plan.
+	// +optional
 	Description string `json:"description,omitempty"`
-
-	Provisioning PlanProvisioningSpec `json:"provisioning,omitempty"`
-	Binding      PlanBindingSpec      `json:"binding,omitempty"`
+	// The specification for how an Instance of the Plan should be provisioned.
+	Provisioning PlanProvisioningSpec `json:"provisioning"`
+	// The specification for how an Instance of the Plan should be bound.
+	Binding PlanBindingSpec `json:"binding"`
 }
 
 // PlanProvisioningSpec defines the Provisioning spec for a Plan.
 type PlanProvisioningSpec struct {
-	Chart  PlanProvisioningChartSpec  `json:"chart,omitempty"`
-	Values PlanProvisioningValuesSpec `json:"values,omitempty"`
+	// Chart contains what chart to be used to provision an Instance of the Plan.
+	Chart PlanProvisioningChartSpec `json:"chart"`
+	// Values contains the configuration for validating user-provided provisioning properties as
+	// well as plan-specific default values and overrides.
+	Values PlanProvisioningValuesSpec `json:"values"`
 }
 
 // PlanProvisioningChartSpec defines the Chart spec for a Provisioning.
 type PlanProvisioningChartSpec struct {
-	URL string `json:"url,omitempty"`
+	// The URL for the Chart tarball.
+	URL string `json:"url"`
 }
 
-// PlanProvisioningValuesSpec defines the Values spec for a Provisioning. It includes the JSON
-// schema for validation, the default values that can be overriden by the user, and the static
-// values that enforce plan-specific configuration.
+// PlanProvisioningValuesSpec defines the Values spec for a Provisioning.
 type PlanProvisioningValuesSpec struct {
-	Schema  string `json:"schema,omitempty"`
+	// The JSON schema for validating user-provided properties that are passed to the Helm client as
+	// values for installing a Chart. The schema definition can be written as YAML or JSON.
+	Schema string `json:"schema"`
+	// The default values used to override the Chart defaults. The user-provided values can still
+	// override these values.
+	// +optional
 	Default string `json:"default,omitempty"`
-	Static  string `json:"static,omitempty"`
+	// The static values applied on top of all other values used to enforce plan-specific
+	// configuration.
+	// +optional
+	Static string `json:"static,omitempty"`
 }
 
 // PlanBindingSpec defines the Binding spec for a Plan.
 type PlanBindingSpec struct {
-	Credentials PlanBindingCredentialsSpec `json:"credentials,omitempty"`
+	// The specification of the desired behaviour of the binding credentials.
+	Credentials PlanBindingCredentialsSpec `json:"credentials"`
 }
 
 // PlanBindingCredentialsSpec defines the Credentials spec for a Binding.
 type PlanBindingCredentialsSpec struct {
-	Script PlanBindingCredentialsScriptSpec `json:"script,omitempty"`
+	// The container specification for the logic of binding an Instance of the Plan.
+	RunContainer PlanBindingCredentialsRunContainerSpec `json:"runContainer"`
 }
 
-// PlanBindingCredentialsScriptSpec defines the Script spec for a Binding Credential.
-type PlanBindingCredentialsScriptSpec struct {
-	Implementation string `json:"implementation,omitempty"`
-	Type           string `json:"type,omitempty"`
+// PlanBindingCredentialsRunContainerSpec defines the container spec for a Binding Credential.
+type PlanBindingCredentialsRunContainerSpec struct {
+	// The image repository, including the registry.
+	Image string `json:"image"`
+	// The entrypoint command used for the container.
+	// +optional
+	Command string `json:"command,omitempty"`
+	// The arguments passed to the entrypoint command.
+	// +optional
+	Args []string `json:"args,omitempty"`
 }
 
 // PlanStatus defines the observed state of Plan.
@@ -82,6 +102,7 @@ type Plan struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// The specification of the desired behaviour of the Plan.
 	Spec   PlanSpec   `json:"spec,omitempty"`
 	Status PlanStatus `json:"status,omitempty"`
 }

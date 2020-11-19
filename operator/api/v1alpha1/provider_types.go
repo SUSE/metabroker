@@ -23,14 +23,15 @@ import (
 // ProviderSpec defines the Service Provider spec.
 type ProviderSpec struct {
 	// The version of the Provider.
-	Version string `json:"version,omitempty"`
+	Version string `json:"version"`
 	// Provider upgrade contraints.
+	// +optional
 	Upgrades UpgradesSpec `json:"upgrades,omitempty"`
 }
 
 // UpgradesSpec defines the validation for upgrades of Service Providers.
 type UpgradesSpec struct {
-	// Version constraints the Provider can upgrade from.
+	// This is a version constraint as defined by:
 	// https://github.com/Masterminds/semver#checking-version-constraints
 	From string `json:"from,omitempty"`
 }
@@ -47,6 +48,7 @@ type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// The specification of the desired behaviour of the Provider.
 	Spec   ProviderSpec   `json:"spec,omitempty"`
 	Status ProviderStatus `json:"status,omitempty"`
 }

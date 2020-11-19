@@ -22,14 +22,17 @@ import (
 
 // OfferingSpec defines the Service Offering spec.
 type OfferingSpec struct {
-	// The name of the Provider this Offering belongs to.
-	Provider string `json:"provider,omitempty"`
-
-	// A unique ID for the Offering.
+	// The name of the Provider this Offering belongs to. The Offering controller sets ownership to
+	// the Provider specified here.
+	Provider string `json:"provider"`
+	// A unique ID for the Plan to be used by OSBAPI. If not provided, a UUID v1 is auto-generated.
+	// +optional
 	ID string `json:"id,omitempty"`
 	// A description for the Offering.
+	// +optional
 	Description string `json:"description,omitempty"`
 	// Whether the Plans linked to this Offering are bindable or not.
+	// +optional
 	Bindable bool `json:"bindable,omitempty"`
 }
 
@@ -45,6 +48,7 @@ type Offering struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// The specification of the desired behaviour of the Offering.
 	Spec   OfferingSpec   `json:"spec,omitempty"`
 	Status OfferingStatus `json:"status,omitempty"`
 }
