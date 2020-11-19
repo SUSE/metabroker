@@ -32,19 +32,20 @@ spec:
         metadata:
           type: object
         spec:
-          description: ProviderSpec defines the Service Provider spec.
+          description: The specification of the desired behaviour of the Provider.
           properties:
             upgrades:
               description: Provider upgrade contraints.
               properties:
                 from:
-                  description: Version constraints the Provider can upgrade from.
-                    https://github.com/Masterminds/semver#checking-version-constraints
+                  description: 'This is a version constraint as defined by: https://github.com/Masterminds/semver#checking-version-constraints'
                   type: string
               type: object
             version:
               description: The version of the Provider.
               type: string
+          required:
+          - version
           type: object
         status:
           description: ProviderStatus defines the observed state of Provider.
