@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: Plan is the Schema for the plans API.
+      description: Plan is the top-level Schema for the Plan resource API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation

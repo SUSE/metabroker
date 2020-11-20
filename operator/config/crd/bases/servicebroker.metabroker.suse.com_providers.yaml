@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: Provider is the Schema for the providers API.
+      description: Provider is the top-level Schema for the Provider resource API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation

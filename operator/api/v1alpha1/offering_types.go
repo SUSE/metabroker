@@ -43,7 +43,7 @@ type OfferingStatus struct {
 
 // +kubebuilder:object:root=true
 
-// Offering is the Schema for the offerings API.
+// Offering is the top-level Schema for the Offering resource API.
 type Offering struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

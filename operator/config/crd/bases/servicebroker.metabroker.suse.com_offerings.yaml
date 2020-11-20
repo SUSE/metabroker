@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: Offering is the Schema for the offerings API.
+      description: Offering is the top-level Schema for the Offering resource API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation

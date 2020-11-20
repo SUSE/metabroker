@@ -97,7 +97,7 @@ type PlanStatus struct {
 
 // +kubebuilder:object:root=true
 
-// Plan is the Schema for the plans API.
+// Plan is the top-level Schema for the Plan resource API.
 type Plan struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

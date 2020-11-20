@@ -43,7 +43,7 @@ type ProviderStatus struct {
 
 // +kubebuilder:object:root=true
 
-// Provider is the Schema for the providers API.
+// Provider is the top-level Schema for the Provider resource API.
 type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
