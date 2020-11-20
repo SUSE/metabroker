@@ -20,27 +20,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// InstanceSpec defines the desired state of Instance
+// InstanceSpec defines the Service Instance spec.
 type InstanceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Instance. Edit Instance_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The name of the Plan this Instance should be provisioned with.
+	Plan string `json:"plan"`
+	// A unique ID for the Instance to be used by OSBAPI. If not provided, a UUID v1 is
+	// auto-generated.
+	// +optional
+	ID string `json:"id,omitempty"`
+	// The values used for provisioning the Instance.
+	Values string `json:"values"`
 }
 
-// InstanceStatus defines the observed state of Instance
+// InstanceStatus defines the observed state of Instance.
 type InstanceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// TODO: implement.
 }
 
 // +kubebuilder:object:root=true
 
-// Instance is the Schema for the instances API
+// Instance is the top-level Schema for the Instance resource API.
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -51,7 +50,7 @@ type Instance struct {
 
 // +kubebuilder:object:root=true
 
-// InstanceList contains a list of Instance
+// InstanceList contains a list of Instance.
 type InstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
