@@ -22,8 +22,8 @@ import (
 
 // OfferingSpec defines the Service Offering spec.
 type OfferingSpec struct {
-	// The name of the Provider this Offering belongs to. The Offering controller sets ownership to
-	// the Provider specified here.
+	// The name of the Provider this Offering belongs to. This Offering will automatically be
+	// deleted when the provider specified here is deleted.
 	Provider string `json:"provider"`
 	// A unique ID for the Plan to be used by OSBAPI. If not provided, a UUID v1 is auto-generated.
 	// +optional
