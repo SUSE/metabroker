@@ -63,7 +63,7 @@ func (r *PlanReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if len(plan.OwnerReferences) == 0 {
 		if err := r.setOwnership(ctx, &req, plan); err != nil {
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
 		planNeedsUpdate = true
 	}
