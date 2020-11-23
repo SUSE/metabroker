@@ -3,5 +3,32 @@ kind: Plan
 metadata:
   name: plan-sample
 spec:
-  # Add fields here
-  foo: bar
+  offering: offering-sample
+  description: A sample plan.
+  provisioning:
+    chart:
+      url: https://charts.bitnami.com/bitnami/postgresql-10.0.2.tgz
+    values:
+      schema: |
+        "$schema": http://json-schema.org/draft-07/schema#
+        type: object
+        properties:
+          postgresqlDatabase:
+            type: string
+            pattern: "^[\w\u00C0-\u017F]{2,31}$"
+      default: |
+        postgresqlDatabase: postgres
+      static: |
+        replication:
+          enabled: false
+  binding:
+    credentials:
+      runContainer:
+        image: postgres:11.10
+        command: /bin/bash
+        args:
+        - -c
+        - |
+          set -o errexit -o nounset -o pipefail
+          
+          # TODO: implement logic for binding.

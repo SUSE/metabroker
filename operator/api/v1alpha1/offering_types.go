@@ -20,38 +20,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// OfferingSpec defines the desired state of Offering
+// OfferingSpec defines the Service Offering spec.
 type OfferingSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Offering. Edit Offering_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The name of the Provider this Offering belongs to. This Offering will automatically be
+	// deleted when the provider specified here is deleted.
+	Provider string `json:"provider"`
+	// A unique ID for the Plan to be used by OSBAPI. If not provided, a UUID v1 is auto-generated.
+	// +optional
+	ID string `json:"id,omitempty"`
+	// A description for the Offering.
+	// +optional
+	Description string `json:"description,omitempty"`
+	// Whether the Plans linked to this Offering are bindable or not.
+	// +optional
+	Bindable bool `json:"bindable,omitempty"`
 }
 
-// OfferingStatus defines the observed state of Offering
+// OfferingStatus defines the observed state of Offering.
 type OfferingStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// TODO: implement.
 }
 
 // +kubebuilder:object:root=true
 
-// Offering is the Schema for the offerings API
+// Offering is the top-level Schema for the Offering resource API.
 type Offering struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// The specification of the desired behaviour of the Offering.
 	Spec   OfferingSpec   `json:"spec,omitempty"`
 	Status OfferingStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// OfferingList contains a list of Offering
+// OfferingList contains a list of Offering.
 type OfferingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

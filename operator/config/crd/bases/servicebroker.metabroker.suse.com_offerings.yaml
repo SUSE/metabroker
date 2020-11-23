@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: Offering is the Schema for the offerings API
+      description: Offering is the top-level Schema for the Offering resource API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -32,15 +32,29 @@ spec:
         metadata:
           type: object
         spec:
-          description: OfferingSpec defines the desired state of Offering
+          description: The specification of the desired behaviour of the Offering.
           properties:
-            foo:
-              description: Foo is an example field of Offering. Edit Offering_types.go
-                to remove/update
+            bindable:
+              description: Whether the Plans linked to this Offering are bindable
+                or not.
+              type: boolean
+            description:
+              description: A description for the Offering.
               type: string
+            id:
+              description: A unique ID for the Plan to be used by OSBAPI. If not provided,
+                a UUID v1 is auto-generated.
+              type: string
+            provider:
+              description: The name of the Provider this Offering belongs to. This
+                Offering will automatically be deleted when the provider specified
+                here is deleted.
+              type: string
+          required:
+          - provider
           type: object
         status:
-          description: OfferingStatus defines the observed state of Offering
+          description: OfferingStatus defines the observed state of Offering.
           type: object
       type: object
   version: v1alpha1

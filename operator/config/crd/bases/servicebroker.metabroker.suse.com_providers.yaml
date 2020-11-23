@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: Provider is the Schema for the providers API
+      description: Provider is the top-level Schema for the Provider resource API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -32,15 +32,23 @@ spec:
         metadata:
           type: object
         spec:
-          description: ProviderSpec defines the desired state of Provider
+          description: The specification of the desired behaviour of the Provider.
           properties:
-            foo:
-              description: Foo is an example field of Provider. Edit Provider_types.go
-                to remove/update
+            upgrades:
+              description: Provider upgrade contraints.
+              properties:
+                from:
+                  description: 'This is a version constraint as defined by: https://github.com/Masterminds/semver#checking-version-constraints'
+                  type: string
+              type: object
+            version:
+              description: The version of the Provider.
               type: string
+          required:
+          - version
           type: object
         status:
-          description: ProviderStatus defines the observed state of Provider
+          description: ProviderStatus defines the observed state of Provider.
           type: object
       type: object
   version: v1alpha1
