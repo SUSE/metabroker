@@ -3,5 +3,7 @@ kind: Instance
 metadata:
   name: instance-sample
 spec:
-  # Add fields here
-  foo: bar
+  plan: plan-sample
+  values: |
+    postgresqlDatabase: my_pg_database
+  validateValues: true

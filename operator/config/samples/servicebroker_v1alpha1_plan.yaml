@@ -15,7 +15,7 @@ spec:
         properties:
           postgresqlDatabase:
             type: string
-            pattern: "^[\w\u00C0-\u017F]{2,31}$"
+            pattern: "^[\\w\u00C0-\u017F]{2,31}$"
       default: |
         postgresqlDatabase: postgres
       static: |
@@ -30,5 +30,5 @@ spec:
         - -c
         - |
           set -o errexit -o nounset -o pipefail
-          
+
           # TODO: implement logic for binding.

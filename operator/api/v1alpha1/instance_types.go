@@ -30,6 +30,11 @@ type InstanceSpec struct {
 	ID string `json:"id,omitempty"`
 	// The values used for provisioning the Instance.
 	Values string `json:"values"`
+	// Whether to validate the Values with the Plan's JSON schema or not. When an Instance is
+	// created via Metabroker's OSBAPI, this should be omitted as the OSBAPI implementation already
+	// performs this validation. If omitted, this field defaults to true.
+	// +optional
+	ValidateValues *bool `json:"validateValues,omitempty"`
 }
 
 // InstanceStatus defines the observed state of Instance.
