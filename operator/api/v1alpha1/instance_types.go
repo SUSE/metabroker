@@ -49,6 +49,7 @@ type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// The specification of the desired behaviour of the Instance.
 	Spec   InstanceSpec   `json:"spec,omitempty"`
 	Status InstanceStatus `json:"status,omitempty"`
 }

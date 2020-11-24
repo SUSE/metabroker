@@ -32,7 +32,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: InstanceSpec defines the Service Instance spec.
+          description: The specification of the desired behaviour of the Instance.
           properties:
             id:
               description: A unique ID for the Instance to be used by OSBAPI. If not
