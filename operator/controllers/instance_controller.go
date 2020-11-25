@@ -61,6 +61,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	instance := &servicebrokerv1alpha1.Instance{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
+			// The instance no longer exists; run any deprovisioning steps necessary.
 			instanceName := req.NamespacedName.Name
 			helmInstanceName := fmt.Sprintf("metabroker-%s", instanceName)
 			namespace := req.NamespacedName.Namespace
