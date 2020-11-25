@@ -63,6 +63,7 @@ func main() {
 	flag.StringVar(
 		&provisioningPodImage,
 		"provisioning-pod-image",
+		// TODO: handle this image properly. This is a temporary development image repository.
 		"metabroker-provisioning",
 		"The image used by the provisioning pod.",
 	)
