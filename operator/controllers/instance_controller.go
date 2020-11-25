@@ -66,7 +66,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			helmInstanceName := fmt.Sprintf("metabroker-%s", instanceName)
 			namespace := req.NamespacedName.Namespace
 			podName := fmt.Sprintf("metabroker-%s-deprovision", instanceName)
-			return r.deprovisioningPod(ctx, helmInstanceName, podName, namespace)
+			return r.runDeprovisioningPod(ctx, helmInstanceName, podName, namespace)
 		}
 		return ctrl.Result{}, err
 	}
@@ -146,7 +146,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	helmInstanceName := fmt.Sprintf("metabroker-%s", instance.Name)
 	podName := fmt.Sprintf("metabroker-%s-provision", instance.Name)
-	return r.provisioningPod(ctx, instance, plan, helmInstanceName, podName, instance.Namespace, valuesSecretName)
+	return r.runProvisioningPod(ctx, instance, plan, helmInstanceName, podName, instance.Namespace, valuesSecretName)
 }
 
 func (r *InstanceReconciler) setOwnership(
@@ -196,7 +196,9 @@ func (r *InstanceReconciler) valuesSecret(
 	return false, nil
 }
 
-func (r *InstanceReconciler) provisioningPod(
+// runProvisioningPod runs the provisioning pod. It creates the pod and its dependencies, ensuring
+// that upon successful completion, all the created resources are deleted.
+func (r *InstanceReconciler) runProvisioningPod(
 	ctx context.Context,
 	instance *servicebrokerv1alpha1.Instance,
 	plan *servicebrokerv1alpha1.Plan,
@@ -337,7 +339,9 @@ helm install "${NAME}" "${CHART}" \
   --values "/etc/metabroker-provisioning/values.yaml"
 `
 
-func (r *InstanceReconciler) deprovisioningPod(
+// runDeprovisioningPod runs the deprovisioning pod. It creates the pod and its dependencies,
+// ensuring that upon successful completion, all the created resources are deleted.
+func (r *InstanceReconciler) runDeprovisioningPod(
 	ctx context.Context,
 	helmInstanceName string,
 	podName string,
