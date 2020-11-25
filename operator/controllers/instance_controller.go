@@ -311,6 +311,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 	}
 
 	if currentPod.Status.Phase == corev1.PodSucceeded {
+		// As soon as the pod gets completed successfully, delete it and its dependencies.
 		if err := r.Delete(ctx, currentServiceAccount); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
 		}
@@ -320,7 +321,6 @@ func (r *InstanceReconciler) runProvisioningPod(
 		if err := r.Delete(ctx, currentPod); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
 		}
-		// As soon as the pod gets completed successfully, delete it.
 		return ctrl.Result{}, nil
 	} else if currentPod.Status.Phase == corev1.PodFailed {
 		// TODO: what should we do when the pod fails?
@@ -430,6 +430,7 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 	}
 
 	if currentPod.Status.Phase == corev1.PodSucceeded {
+		// As soon as the pod gets completed successfully, delete it and its dependencies.
 		if err := r.Delete(ctx, currentServiceAccount); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
 		}
@@ -439,7 +440,6 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 		if err := r.Delete(ctx, currentPod); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
 		}
-		// As soon as the pod gets completed successfully, delete it.
 		return ctrl.Result{}, nil
 	} else if currentPod.Status.Phase == corev1.PodFailed {
 		// TODO: what should we do when the pod fails?
