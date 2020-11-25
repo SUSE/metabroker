@@ -80,7 +80,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	instanceNeedsUpdate := false
 
 	if len(instance.OwnerReferences) == 0 {
-		if err := r.setOwnership(ctx, instance, plan); err != nil {
+		if err := ctrl.SetControllerReference(plan, instance, r.Scheme); err != nil {
 			return ctrl.Result{}, nil
 		}
 		instanceNeedsUpdate = true
@@ -144,17 +144,6 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return r.runProvisioningPod(ctx, ProvisioningRequest{releaseReq}, instance, plan, valuesSecretName)
-}
-
-func (r *InstanceReconciler) setOwnership(
-	ctx context.Context,
-	instance *servicebrokerv1alpha1.Instance,
-	plan *servicebrokerv1alpha1.Plan,
-) error {
-	if err := ctrl.SetControllerReference(plan, instance, r.Scheme); err != nil {
-		return fmt.Errorf("failed to set ownership: %w", err)
-	}
-	return nil
 }
 
 // valuesSecret creates a Secret containing the values.yaml content if it doesn't exist yet.
