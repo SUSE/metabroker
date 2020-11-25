@@ -280,8 +280,8 @@ func (r *InstanceReconciler) runProvisioningPod(
 					Name:            "provisioning",
 					Image:           r.ProvisioningPodImage,
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Command:         []string{"/bin/bash"},
-					Args:            []string{"-c", provisioningScript},
+					Command:         []string{"/bin/catatonit", "--"},
+					Args:            []string{"/bin/bash", "-c", provisioningScript},
 					Env: []corev1.EnvVar{
 						{Name: "NAME", Value: helmInstanceName},
 						{Name: "CHART", Value: plan.Spec.Provisioning.Chart.URL},
@@ -414,8 +414,8 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 					Name:            "deprovisioning",
 					Image:           r.ProvisioningPodImage,
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Command:         []string{"/bin/bash"},
-					Args:            []string{"-c", deprovisioningScript},
+					Command:         []string{"/bin/catatonit", "--"},
+					Args:            []string{"/bin/bash", "-c", deprovisioningScript},
 					Env: []corev1.EnvVar{
 						{Name: "NAME", Value: helmInstanceName},
 						{Name: "NAMESPACE", Value: namespace},
