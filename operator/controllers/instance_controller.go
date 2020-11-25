@@ -59,15 +59,13 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Log.WithValues("instance", req.NamespacedName)
 
+	releaseReq := ReleaseRequest{req}
+
 	instance := &servicebrokerv1alpha1.Instance{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
 			// The instance no longer exists; run any deprovisioning steps necessary.
-			instanceName := req.NamespacedName.Name
-			helmInstanceName := fmt.Sprintf("metabroker-%s", instanceName)
-			namespace := req.NamespacedName.Namespace
-			podName := fmt.Sprintf("metabroker-%s-deprovision", instanceName)
-			return r.runDeprovisioningPod(ctx, helmInstanceName, podName, namespace)
+			return r.runDeprovisioningPod(ctx, DeprovisioningRequest{releaseReq})
 		}
 		return ctrl.Result{}, err
 	}
@@ -145,9 +143,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	helmInstanceName := fmt.Sprintf("metabroker-%s", instance.Name)
-	podName := fmt.Sprintf("metabroker-%s-provision", instance.Name)
-	return r.runProvisioningPod(ctx, instance, plan, helmInstanceName, podName, instance.Namespace, valuesSecretName)
+	return r.runProvisioningPod(ctx, ProvisioningRequest{releaseReq}, instance, plan, valuesSecretName)
 }
 
 func (r *InstanceReconciler) setOwnership(
@@ -201,16 +197,14 @@ func (r *InstanceReconciler) valuesSecret(
 // that upon successful completion, all the created resources are deleted.
 func (r *InstanceReconciler) runProvisioningPod(
 	ctx context.Context,
+	req ProvisioningRequest,
 	instance *servicebrokerv1alpha1.Instance,
 	plan *servicebrokerv1alpha1.Plan,
-	helmInstanceName string,
-	podName string,
-	namespace string,
 	valuesSecretName string,
 ) (ctrl.Result, error) {
 	namespacedName := types.NamespacedName{
-		Name:      podName,
-		Namespace: namespace,
+		Name:      req.Name(),
+		Namespace: req.Namespace,
 	}
 
 	currentServiceAccount := &corev1.ServiceAccount{}
@@ -220,8 +214,8 @@ func (r *InstanceReconciler) runProvisioningPod(
 		}
 		desiredServiceAccount := &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      podName, // The ServiceAccount has the same name as the Pod.
-				Namespace: namespace,
+				Name:      req.Name(),
+				Namespace: req.Namespace,
 				// TODO: add proper labels.
 			},
 		}
@@ -235,14 +229,14 @@ func (r *InstanceReconciler) runProvisioningPod(
 
 	desiredRoleBinding := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      podName, // The RoleBinding has the same name as the Pod.
-			Namespace: namespace,
+			Name:      req.Name(),
+			Namespace: req.Namespace,
 			// TODO: add proper labels.
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
-			Name:      podName,
-			Namespace: namespace,
+			Name:      req.Name(),
+			Namespace: req.Namespace,
 		}},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
@@ -272,12 +266,12 @@ func (r *InstanceReconciler) runProvisioningPod(
 
 	desiredPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      podName,
-			Namespace: namespace,
+			Name:      req.Name(),
+			Namespace: req.Namespace,
 			// TODO: add proper labels.
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: podName,
+			ServiceAccountName: req.Name(),
 			RestartPolicy:      corev1.RestartPolicyNever,
 			Containers: []corev1.Container{{
 				Name:            "provisioning",
@@ -286,7 +280,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 				Command:         []string{"/bin/catatonit", "--"},
 				Args:            []string{"/bin/bash", "-c", provisioningScript},
 				Env: []corev1.EnvVar{
-					{Name: "NAME", Value: helmInstanceName},
+					{Name: "NAME", Value: req.ReleaseName()},
 					{Name: "CHART", Value: plan.Spec.Provisioning.Chart.URL},
 					{Name: "NAMESPACE", Value: instance.Namespace},
 				},
@@ -360,13 +354,11 @@ helm install "${NAME}" "${CHART}" \
 // ensuring that upon successful completion, all the created resources are deleted.
 func (r *InstanceReconciler) runDeprovisioningPod(
 	ctx context.Context,
-	helmInstanceName string,
-	podName string,
-	namespace string,
+	req DeprovisioningRequest,
 ) (ctrl.Result, error) {
 	namespacedName := types.NamespacedName{
-		Name:      podName,
-		Namespace: namespace,
+		Name:      req.Name(),
+		Namespace: req.Namespace,
 	}
 
 	currentServiceAccount := &corev1.ServiceAccount{}
@@ -376,8 +368,8 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 		}
 		desiredServiceAccount := &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      podName, // The ServiceAccount has the same name as the Pod.
-				Namespace: namespace,
+				Name:      req.Name(),
+				Namespace: req.Namespace,
 				// TODO: add proper labels.
 			},
 		}
@@ -388,14 +380,14 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 
 	desiredRoleBinding := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      podName, // The RoleBinding has the same name as the Pod.
-			Namespace: namespace,
+			Name:      req.Name(),
+			Namespace: req.Namespace,
 			// TODO: add proper labels.
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
-			Name:      podName,
-			Namespace: namespace,
+			Name:      req.Name(),
+			Namespace: req.Namespace,
 		}},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
@@ -422,12 +414,12 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 
 	desiredPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      podName,
-			Namespace: namespace,
+			Name:      req.Name(),
+			Namespace: req.Namespace,
 			// TODO: add proper labels.
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: podName,
+			ServiceAccountName: req.Name(),
 			RestartPolicy:      corev1.RestartPolicyNever,
 			Containers: []corev1.Container{{
 				Name:            "deprovisioning",
@@ -436,8 +428,8 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 				Command:         []string{"/bin/catatonit", "--"},
 				Args:            []string{"/bin/bash", "-c", deprovisioningScript},
 				Env: []corev1.EnvVar{
-					{Name: "NAME", Value: helmInstanceName},
-					{Name: "NAMESPACE", Value: namespace},
+					{Name: "NAME", Value: req.ReleaseName()},
+					{Name: "NAMESPACE", Value: req.Namespace},
 				},
 			}},
 		},
@@ -496,4 +488,38 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&servicebrokerv1alpha1.Instance{}).
 		Complete(r)
+}
+
+// ReleaseRequest wraps ctrl.Request for providing a method that returns a canonical Helm release
+// name.
+type ReleaseRequest struct {
+	ctrl.Request
+}
+
+// ReleaseName returns the canonical Helm release name based on the request name. This is useful for
+// keeping name consistency across the Metabroker implementation.
+func (req ReleaseRequest) ReleaseName() string {
+	return fmt.Sprintf("metabroker-%s", req.Name)
+}
+
+// ProvisioningRequest wraps ReleaseRequest for providing the name used for all the provisioning
+// objects.
+type ProvisioningRequest struct {
+	ReleaseRequest
+}
+
+// Name returns the provisioning name.
+func (req ProvisioningRequest) Name() string {
+	return fmt.Sprintf("%s-provision", req.ReleaseName())
+}
+
+// DeprovisioningRequest wraps ReleaseRequest for providing the name used for all the deprovisioning
+// objects.
+type DeprovisioningRequest struct {
+	ReleaseRequest
+}
+
+// Name returns the deprovisioning name.
+func (req DeprovisioningRequest) Name() string {
+	return fmt.Sprintf("%s-deprovision", req.ReleaseName())
 }
