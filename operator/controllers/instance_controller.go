@@ -27,6 +27,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -215,7 +216,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 	currentServiceAccount := &corev1.ServiceAccount{}
 	if err := r.Get(ctx, namespacedName, currentServiceAccount); err != nil {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		desiredServiceAccount := &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
@@ -225,105 +226,121 @@ func (r *InstanceReconciler) runProvisioningPod(
 			},
 		}
 		if err := ctrl.SetControllerReference(instance, desiredServiceAccount, r.Scheme); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		if err := r.Create(ctx, desiredServiceAccount); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
+	}
+
+	desiredRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      podName, // The RoleBinding has the same name as the Pod.
+			Namespace: namespace,
+			// TODO: add proper labels.
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      podName,
+			Namespace: namespace,
+		}},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "ClusterRole",
+			APIGroup: "rbac.authorization.k8s.io",
+			Name:     "cluster-admin",
+		},
+	}
+	if err := ctrl.SetControllerReference(instance, desiredRoleBinding, r.Scheme); err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 	}
 
 	currentRoleBinding := &rbacv1.RoleBinding{}
 	if err := r.Get(ctx, namespacedName, currentRoleBinding); err != nil {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
-		}
-		desiredRoleBinding := &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      podName, // The RoleBinding has the same name as the Pod.
-				Namespace: namespace,
-				// TODO: add proper labels.
-			},
-			Subjects: []rbacv1.Subject{{
-				Kind:      "ServiceAccount",
-				Name:      podName,
-				Namespace: namespace,
-			}},
-			RoleRef: rbacv1.RoleRef{
-				Kind:     "ClusterRole",
-				APIGroup: "rbac.authorization.k8s.io",
-				Name:     "cluster-admin",
-			},
-		}
-		if err := ctrl.SetControllerReference(instance, desiredRoleBinding, r.Scheme); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		if err := r.Create(ctx, desiredRoleBinding); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
+	}
+
+	if !equality.Semantic.DeepDerivative(desiredRoleBinding.RoleRef, currentRoleBinding.RoleRef) {
+		if err := r.Update(ctx, desiredRoleBinding); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
+		}
+	}
+
+	desiredPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      podName,
+			Namespace: namespace,
+			// TODO: add proper labels.
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: podName,
+			RestartPolicy:      corev1.RestartPolicyNever,
+			Containers: []corev1.Container{{
+				Name:            "provisioning",
+				Image:           r.ProvisioningPodImage,
+				ImagePullPolicy: corev1.PullIfNotPresent,
+				Command:         []string{"/bin/catatonit", "--"},
+				Args:            []string{"/bin/bash", "-c", provisioningScript},
+				Env: []corev1.EnvVar{
+					{Name: "NAME", Value: helmInstanceName},
+					{Name: "CHART", Value: plan.Spec.Provisioning.Chart.URL},
+					{Name: "NAMESPACE", Value: instance.Namespace},
+				},
+				VolumeMounts: []corev1.VolumeMount{{
+					Name:      "values",
+					ReadOnly:  true,
+					MountPath: "/etc/metabroker-provisioning/",
+				}},
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "values",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{SecretName: valuesSecretName},
+				},
+			}},
+		},
+	}
+	if err := ctrl.SetControllerReference(instance, desiredPod, r.Scheme); err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 	}
 
 	currentPod := &corev1.Pod{}
 	if err := r.Get(ctx, namespacedName, currentPod); err != nil {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
-		}
-		desiredPod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      podName,
-				Namespace: namespace,
-				// TODO: add proper labels.
-			},
-			Spec: corev1.PodSpec{
-				ServiceAccountName: podName,
-				RestartPolicy:      corev1.RestartPolicyNever,
-				Containers: []corev1.Container{{
-					Name:            "provisioning",
-					Image:           r.ProvisioningPodImage,
-					ImagePullPolicy: corev1.PullIfNotPresent,
-					Command:         []string{"/bin/catatonit", "--"},
-					Args:            []string{"/bin/bash", "-c", provisioningScript},
-					Env: []corev1.EnvVar{
-						{Name: "NAME", Value: helmInstanceName},
-						{Name: "CHART", Value: plan.Spec.Provisioning.Chart.URL},
-						{Name: "NAMESPACE", Value: instance.Namespace},
-					},
-					VolumeMounts: []corev1.VolumeMount{{
-						Name:      "values",
-						ReadOnly:  true,
-						MountPath: "/etc/metabroker-provisioning/",
-					}},
-				}},
-				Volumes: []corev1.Volume{{
-					Name: "values",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{SecretName: valuesSecretName},
-					},
-				}},
-			},
-		}
-		if err := ctrl.SetControllerReference(instance, desiredPod, r.Scheme); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		if err := r.Create(ctx, desiredPod); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if currentPod.Status.Phase == corev1.PodSucceeded {
-		// As soon as the pod gets completed successfully, delete it and its dependencies.
+	if !equality.Semantic.DeepDerivative(desiredPod.Spec, currentPod.Spec) {
+		if err := r.Update(ctx, desiredPod); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if currentPod.Status.Phase == corev1.PodSucceeded || currentPod.Status.Phase == corev1.PodFailed {
+		// As soon as the pod gets completed, delete it and its dependencies.
 		if err := r.Delete(ctx, currentServiceAccount); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		if err := r.Delete(ctx, currentRoleBinding); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		if err := r.Delete(ctx, currentPod); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process provisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
+		}
+		if currentPod.Status.Phase == corev1.PodFailed {
+			// TODO: what should we do when the pod fails?
 		}
 		return ctrl.Result{}, nil
-	} else if currentPod.Status.Phase == corev1.PodFailed {
-		// TODO: what should we do when the pod fails?
 	}
 
 	return ctrl.Result{RequeueAfter: time.Second * 3}, nil
@@ -355,7 +372,7 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 	currentServiceAccount := &corev1.ServiceAccount{}
 	if err := r.Get(ctx, namespacedName, currentServiceAccount); err != nil {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
 		desiredServiceAccount := &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
@@ -365,84 +382,100 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 			},
 		}
 		if err := r.Create(ctx, desiredServiceAccount); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
+	}
+
+	desiredRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      podName, // The RoleBinding has the same name as the Pod.
+			Namespace: namespace,
+			// TODO: add proper labels.
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      podName,
+			Namespace: namespace,
+		}},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "ClusterRole",
+			APIGroup: "rbac.authorization.k8s.io",
+			Name:     "cluster-admin",
+		},
 	}
 
 	currentRoleBinding := &rbacv1.RoleBinding{}
 	if err := r.Get(ctx, namespacedName, currentRoleBinding); err != nil {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
-		}
-		desiredRoleBinding := &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      podName, // The RoleBinding has the same name as the Pod.
-				Namespace: namespace,
-				// TODO: add proper labels.
-			},
-			Subjects: []rbacv1.Subject{{
-				Kind:      "ServiceAccount",
-				Name:      podName,
-				Namespace: namespace,
-			}},
-			RoleRef: rbacv1.RoleRef{
-				Kind:     "ClusterRole",
-				APIGroup: "rbac.authorization.k8s.io",
-				Name:     "cluster-admin",
-			},
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
 		if err := r.Create(ctx, desiredRoleBinding); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
+	}
+
+	if !equality.Semantic.DeepDerivative(desiredRoleBinding.RoleRef, currentRoleBinding.RoleRef) {
+		if err := r.Update(ctx, desiredRoleBinding); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
+		}
+	}
+
+	desiredPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      podName,
+			Namespace: namespace,
+			// TODO: add proper labels.
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: podName,
+			RestartPolicy:      corev1.RestartPolicyNever,
+			Containers: []corev1.Container{{
+				Name:            "deprovisioning",
+				Image:           r.ProvisioningPodImage,
+				ImagePullPolicy: corev1.PullIfNotPresent,
+				Command:         []string{"/bin/catatonit", "--"},
+				Args:            []string{"/bin/bash", "-c", deprovisioningScript},
+				Env: []corev1.EnvVar{
+					{Name: "NAME", Value: helmInstanceName},
+					{Name: "NAMESPACE", Value: namespace},
+				},
+			}},
+		},
 	}
 
 	currentPod := &corev1.Pod{}
 	if err := r.Get(ctx, namespacedName, currentPod); err != nil {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
-		}
-		desiredPod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      podName,
-				Namespace: namespace,
-				// TODO: add proper labels.
-			},
-			Spec: corev1.PodSpec{
-				ServiceAccountName: podName,
-				RestartPolicy:      corev1.RestartPolicyNever,
-				Containers: []corev1.Container{{
-					Name:            "deprovisioning",
-					Image:           r.ProvisioningPodImage,
-					ImagePullPolicy: corev1.PullIfNotPresent,
-					Command:         []string{"/bin/catatonit", "--"},
-					Args:            []string{"/bin/bash", "-c", deprovisioningScript},
-					Env: []corev1.EnvVar{
-						{Name: "NAME", Value: helmInstanceName},
-						{Name: "NAMESPACE", Value: namespace},
-					},
-				}},
-			},
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
 		if err := r.Create(ctx, desiredPod); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if currentPod.Status.Phase == corev1.PodSucceeded {
-		// As soon as the pod gets completed successfully, delete it and its dependencies.
+	if !equality.Semantic.DeepDerivative(desiredPod.Spec, currentPod.Spec) {
+		if err := r.Update(ctx, desiredPod); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	if currentPod.Status.Phase == corev1.PodSucceeded || currentPod.Status.Phase == corev1.PodFailed {
+		// As soon as the pod gets completed, delete it and its dependencies.
 		if err := r.Delete(ctx, currentServiceAccount); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
 		if err := r.Delete(ctx, currentRoleBinding); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
 		if err := r.Delete(ctx, currentPod); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to process deprovisioning pod: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
+		}
+		if currentPod.Status.Phase == corev1.PodFailed {
+			// TODO: what should we do when the pod fails?
 		}
 		return ctrl.Result{}, nil
-	} else if currentPod.Status.Phase == corev1.PodFailed {
-		// TODO: what should we do when the pod fails?
 	}
 
 	return ctrl.Result{RequeueAfter: time.Second * 3}, nil
