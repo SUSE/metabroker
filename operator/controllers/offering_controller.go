@@ -62,7 +62,7 @@ func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	offeringNeedsUpdate := false
 
 	if len(offering.OwnerReferences) == 0 {
-		if err := r.setOwnership(ctx, &req, offering); err != nil {
+		if err := r.setControllingOwner(ctx, &req, offering); err != nil {
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
 		offeringNeedsUpdate = true
@@ -84,7 +84,7 @@ func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *OfferingReconciler) setOwnership(
+func (r *OfferingReconciler) setControllingOwner(
 	ctx context.Context,
 	req *ctrl.Request,
 	offering *servicebrokerv1alpha1.Offering,

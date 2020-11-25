@@ -62,7 +62,7 @@ func (r *PlanReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	planNeedsUpdate := false
 
 	if len(plan.OwnerReferences) == 0 {
-		if err := r.setOwnership(ctx, &req, plan); err != nil {
+		if err := r.setControllingOwner(ctx, &req, plan); err != nil {
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
 		planNeedsUpdate = true
@@ -84,7 +84,7 @@ func (r *PlanReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *PlanReconciler) setOwnership(
+func (r *PlanReconciler) setControllingOwner(
 	ctx context.Context,
 	req *ctrl.Request,
 	plan *servicebrokerv1alpha1.Plan,
