@@ -13,4 +13,7 @@ resources:
 - group: servicebroker
   kind: Instance
   version: v1alpha1
+- group: servicebroker
+  kind: Credential
+  version: v1alpha1
 version: "2"
