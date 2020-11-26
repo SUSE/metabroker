@@ -1,0 +1,48 @@
+# Copyright 2020 SUSE
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM opensuse/leap:15.2 AS base_staging
+
+RUN zypper refresh
+RUN zypper --non-interactive install \
+    autoconf \
+    automake \
+    curl \
+    gcc \
+    git-core \
+    glibc-devel-static \
+    go1.14 \
+    gzip \
+    libtool \
+    make \
+    tar
+
+FROM base_staging AS helm_staging
+
+WORKDIR /build/helm
+RUN git clone --depth 1 --branch v3.4.1 https://github.com/helm/helm.git .
+RUN make
+
+FROM base_staging AS catatonit_staging
+
+WORKDIR /build/catatonit
+RUN git clone --depth 1 --branch v0.1.5 https://github.com/openSUSE/catatonit.git .
+RUN autoreconf -fi
+RUN ./configure
+RUN make
+
+FROM registry.suse.com/suse/sle15:15.2
+
+COPY --from=helm_staging /build/helm/bin/helm /usr/local/bin/helm
+COPY --from=catatonit_staging /build/catatonit/catatonit /bin/catatonit

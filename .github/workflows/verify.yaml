@@ -1,7 +1,9 @@
 name: Verify
 on:
   pull_request:
-    branches: [main]
+    branches:
+    - main
+    - prototype
   workflow_dispatch: {}
 jobs:
   verify:

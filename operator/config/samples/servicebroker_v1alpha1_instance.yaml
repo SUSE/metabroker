@@ -1,0 +1,9 @@
+apiVersion: servicebroker.metabroker.suse.com/v1alpha1
+kind: Instance
+metadata:
+  name: instance-sample
+spec:
+  plan: plan-sample
+  values: |
+    postgresqlDatabase: my_pg_database
+  validateValues: true

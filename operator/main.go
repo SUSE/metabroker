@@ -46,10 +46,27 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	var provisioningPodImage string
+	flag.StringVar(
+		&metricsAddr,
+		"metrics-addr",
+		":8080",
+		"The address the metric endpoint binds to.",
+	)
+	flag.BoolVar(
+		&enableLeaderElection,
+		"enable-leader-election",
+		false,
 		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
+			"Enabling this will ensure there is only one active controller manager.",
+	)
+	flag.StringVar(
+		&provisioningPodImage,
+		"provisioning-pod-image",
+		// TODO: handle this image properly. This is a temporary development image repository.
+		"metabroker-provisioning",
+		"The image used by the provisioning pod.",
+	)
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -88,6 +105,15 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Plan")
+		os.Exit(1)
+	}
+	if err = (&controllers.InstanceReconciler{
+		Client:               mgr.GetClient(),
+		Log:                  ctrl.Log.WithName("controllers").WithName("Instance"),
+		Scheme:               mgr.GetScheme(),
+		ProvisioningPodImage: provisioningPodImage,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
