@@ -21,6 +21,7 @@ RUN zypper --non-interactive install \
     curl \
     gcc \
     git-core \
+    glibc-devel-static \
     go1.14 \
     gzip \
     libtool \
