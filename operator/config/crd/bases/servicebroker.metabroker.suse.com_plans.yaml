@@ -1,10 +1,10 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: plans.servicebroker.metabroker.suse.com
 spec:
@@ -15,118 +15,119 @@ spec:
     plural: plans
     singular: plan
   scope: Namespaced
-  validation:
-    openAPIV3Schema:
-      description: Plan is the top-level Schema for the Plan resource API.
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: The specification of the desired behaviour of the Plan.
-          properties:
-            binding:
-              description: The specification for how an Instance of the Plan should
-                be bound.
-              properties:
-                credentials:
-                  description: The specification of the desired behaviour of the binding
-                    credentials.
-                  properties:
-                    runContainer:
-                      description: The container specification for the logic of binding
-                        an Instance of the Plan.
-                      properties:
-                        args:
-                          description: The arguments passed to the entrypoint command.
-                          items:
-                            type: string
-                          type: array
-                        command:
-                          description: The entrypoint command used for the container.
-                          type: string
-                        image:
-                          description: The image repository, including the registry.
-                          type: string
-                      required:
-                      - image
-                      type: object
-                  required:
-                  - runContainer
-                  type: object
-              required:
-              - credentials
-              type: object
-            description:
-              description: A description for the Plan.
-              type: string
-            id:
-              description: A unique ID for the Plan to be used by OSBAPI. If not provided,
-                a UUID v1 is auto-generated.
-              type: string
-            offering:
-              description: The name of the Offering this Plan belongs to.
-              type: string
-            provisioning:
-              description: The specification for how an Instance of the Plan should
-                be provisioned.
-              properties:
-                chart:
-                  description: Chart contains what chart to be used to provision an
-                    Instance of the Plan.
-                  properties:
-                    url:
-                      description: The URL for the Chart tarball.
-                      type: string
-                  required:
-                  - url
-                  type: object
-                values:
-                  description: Values contains the configuration for validating user-provided
-                    provisioning properties as well as plan-specific default values
-                    and overrides.
-                  properties:
-                    default:
-                      description: The default values used to override the Chart defaults.
-                        The user-provided values can still override these values.
-                      type: string
-                    schema:
-                      description: The JSON schema for validating user-provided properties
-                        that are passed to the Helm client as values for installing
-                        a Chart. The schema definition can be written as YAML or JSON.
-                      type: string
-                    static:
-                      description: The static values applied on top of all other values
-                        used to enforce plan-specific configuration.
-                      type: string
-                  required:
-                  - schema
-                  type: object
-              required:
-              - chart
-              - values
-              type: object
-          required:
-          - binding
-          - offering
-          - provisioning
-          type: object
-        status:
-          description: PlanStatus defines the observed state of Plan.
-          type: object
-      type: object
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Plan is the top-level Schema for the Plan resource API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: The specification of the desired behaviour of the Plan.
+            properties:
+              binding:
+                description: The specification for how an Instance of the Plan should
+                  be bound.
+                properties:
+                  credentials:
+                    description: The specification of the desired behaviour of the
+                      binding credentials.
+                    properties:
+                      runContainer:
+                        description: The container specification for the logic of
+                          binding an Instance of the Plan.
+                        properties:
+                          args:
+                            description: The arguments passed to the entrypoint command.
+                            items:
+                              type: string
+                            type: array
+                          command:
+                            description: The entrypoint command used for the container.
+                            type: string
+                          image:
+                            description: The image repository, including the registry.
+                            type: string
+                        required:
+                        - image
+                        type: object
+                    required:
+                    - runContainer
+                    type: object
+                required:
+                - credentials
+                type: object
+              description:
+                description: A description for the Plan.
+                type: string
+              id:
+                description: A unique ID for the Plan to be used by OSBAPI. If not
+                  provided, a UUID v1 is auto-generated.
+                type: string
+              offering:
+                description: The name of the Offering this Plan belongs to.
+                type: string
+              provisioning:
+                description: The specification for how an Instance of the Plan should
+                  be provisioned.
+                properties:
+                  chart:
+                    description: Chart contains what chart to be used to provision
+                      an Instance of the Plan.
+                    properties:
+                      url:
+                        description: The URL for the Chart tarball.
+                        type: string
+                    required:
+                    - url
+                    type: object
+                  values:
+                    description: Values contains the configuration for validating
+                      user-provided provisioning properties as well as plan-specific
+                      default values and overrides.
+                    properties:
+                      default:
+                        description: The default values used to override the Chart
+                          defaults. The user-provided values can still override these
+                          values.
+                        type: string
+                      schema:
+                        description: The JSON schema for validating user-provided
+                          properties that are passed to the Helm client as values
+                          for installing a Chart. The schema definition can be written
+                          as YAML or JSON.
+                        type: string
+                      static:
+                        description: The static values applied on top of all other
+                          values used to enforce plan-specific configuration.
+                        type: string
+                    required:
+                    - schema
+                    type: object
+                required:
+                - chart
+                - values
+                type: object
+            required:
+            - binding
+            - offering
+            - provisioning
+            type: object
+          status:
+            description: PlanStatus defines the observed state of Plan.
+            type: object
+        type: object
     served: true
     storage: true
 status:
