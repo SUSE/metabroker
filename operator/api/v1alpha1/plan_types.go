@@ -43,6 +43,9 @@ type PlanProvisioningSpec struct {
 	// Values contains the configuration for validating user-provided provisioning properties as
 	// well as plan-specific default values and overrides.
 	Values PlanProvisioningValuesSpec `json:"values"`
+	// TODO: add a provisioning hook that has the capability of modifying the secret containing the
+	// values.yaml. This can be separated into pre-install and pre-upgrade, as some charts require
+	// the upgrade to contain values extracted from the previous installation.
 }
 
 // PlanProvisioningChartSpec defines the Chart spec for a Provisioning.
