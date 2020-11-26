@@ -102,7 +102,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err := r.Update(ctx, instance); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	// TODO: update the status with validated so the controller doesn't keep performing the
@@ -301,14 +301,14 @@ func (r *InstanceReconciler) runProvisioningPod(
 		if err := r.Create(ctx, desiredPod); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	if !equality.Semantic.DeepDerivative(desiredPod.Spec, currentPod.Spec) {
 		if err := r.Update(ctx, desiredPod); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	if currentPod.Status.Phase == corev1.PodSucceeded || currentPod.Status.Phase == corev1.PodFailed {
@@ -328,7 +328,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{RequeueAfter: time.Second * 3}, nil
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 const provisioningScript = `#!/bin/bash
@@ -435,14 +435,14 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 		if err := r.Create(ctx, desiredPod); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	if !equality.Semantic.DeepDerivative(desiredPod.Spec, currentPod.Spec) {
 		if err := r.Update(ctx, desiredPod); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to deprovision: %w", err)
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	if currentPod.Status.Phase == corev1.PodSucceeded || currentPod.Status.Phase == corev1.PodFailed {
@@ -462,7 +462,7 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{RequeueAfter: time.Second * 3}, nil
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 const deprovisioningScript = `#!/bin/bash
