@@ -143,6 +143,8 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	// TODO: determine if the provisioning pod should run again for a Helm upgrade or not.
+
 	return r.runProvisioningPod(ctx, ProvisioningRequest{releaseReq}, instance, plan, valuesSecretName)
 }
 
@@ -333,7 +335,8 @@ const provisioningScript = `#!/bin/bash
 
 set -o errexit -o nounset
 
-helm install "${NAME}" "${CHART}" \
+helm upgrade "${NAME}" "${CHART}" \
+  --install \
   --atomic \
   --namespace "${NAMESPACE}" \
   --values "/etc/metabroker-provisioning/values.yaml"
