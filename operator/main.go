@@ -46,6 +46,7 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var metabrokerName string
 	var provisioningPodImage string
 	flag.StringVar(
 		&metricsAddr,
@@ -59,6 +60,12 @@ func main() {
 		false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.",
+	)
+	flag.StringVar(
+		&metabrokerName,
+		"metabroker-name",
+		"metabroker",
+		"The name of this Metabroker instance.",
 	)
 	flag.StringVar(
 		&provisioningPodImage,
@@ -107,12 +114,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Plan")
 		os.Exit(1)
 	}
-	if err = (&controllers.InstanceReconciler{
-		Client:               mgr.GetClient(),
-		Log:                  ctrl.Log.WithName("controllers").WithName("Instance"),
-		Scheme:               mgr.GetScheme(),
-		ProvisioningPodImage: provisioningPodImage,
-	}).SetupWithManager(mgr); err != nil {
+	if err = controllers.NewInstanceReconciler(
+		metabrokerName,
+		provisioningPodImage,
+	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
