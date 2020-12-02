@@ -201,15 +201,15 @@ func mergeValues(
 ) ([]byte, error) {
 	userValues := make(map[string]interface{})
 	if err := yaml.Unmarshal([]byte(instance.Spec.Values), &userValues); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal user-provided values: %w", err)
 	}
 	defaultValues := make(map[string]interface{})
 	if err := yaml.Unmarshal([]byte(plan.Spec.Provisioning.Values.Default), &defaultValues); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal default plan values: %w", err)
 	}
 	staticValues := make(map[string]interface{})
 	if err := yaml.Unmarshal([]byte(plan.Spec.Provisioning.Values.Static), &staticValues); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal static plan values: %w", err)
 	}
 	values := make(map[string]interface{})
 	values = mergeMaps(values, defaultValues)
