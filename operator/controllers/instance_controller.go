@@ -41,10 +41,19 @@ import (
 // InstanceReconciler implements the Reconcile method for the Instance resource.
 type InstanceReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
 
-	ProvisioningPodImage string
+	log                  logr.Logger
+	scheme               *runtime.Scheme
+	metabrokerName       string
+	provisioningPodImage string
+}
+
+// NewInstanceReconciler constructs a new InstanceReconciler.
+func NewInstanceReconciler(metabrokerName, provisioningPodImage string) *InstanceReconciler {
+	return &InstanceReconciler{
+		metabrokerName:       metabrokerName,
+		provisioningPodImage: provisioningPodImage,
+	}
 }
 
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=instances,verbs=get;list;watch;create;update;patch;delete
@@ -57,9 +66,9 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), instanceReconcileTimeout)
 	defer cancel()
 
-	log := r.Log.WithValues("instance", req.NamespacedName)
+	log := r.log.WithValues("instance", req.NamespacedName)
 
-	releaseReq := ReleaseRequest{req}
+	releaseReq := ReleaseRequest{req, r.metabrokerName}
 
 	instance := &servicebrokerv1alpha1.Instance{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
@@ -80,7 +89,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	instanceNeedsUpdate := false
 
 	if len(instance.OwnerReferences) == 0 {
-		if err := ctrl.SetControllerReference(plan, instance, r.Scheme); err != nil {
+		if err := ctrl.SetControllerReference(plan, instance, r.scheme); err != nil {
 			return ctrl.Result{}, nil
 		}
 		instanceNeedsUpdate = true
@@ -173,7 +182,7 @@ func (r *InstanceReconciler) valuesSecret(
 			},
 			Data: map[string][]byte{"values.yaml": []byte(instance.Spec.Values)},
 		}
-		if err := ctrl.SetControllerReference(instance, desired, r.Scheme); err != nil {
+		if err := ctrl.SetControllerReference(instance, desired, r.scheme); err != nil {
 			return false, fmt.Errorf("failed to process values secret: %w", err)
 		}
 		if err := r.Create(ctx, desired); err != nil {
@@ -210,7 +219,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 				// TODO: add proper labels.
 			},
 		}
-		if err := ctrl.SetControllerReference(instance, desiredServiceAccount, r.Scheme); err != nil {
+		if err := ctrl.SetControllerReference(instance, desiredServiceAccount, r.scheme); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 		}
 		if err := r.Create(ctx, desiredServiceAccount); err != nil {
@@ -235,7 +244,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 			Name:     "cluster-admin",
 		},
 	}
-	if err := ctrl.SetControllerReference(instance, desiredRoleBinding, r.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(instance, desiredRoleBinding, r.scheme); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 	}
 
@@ -266,7 +275,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 			RestartPolicy:      corev1.RestartPolicyNever,
 			Containers: []corev1.Container{{
 				Name:            "provisioning",
-				Image:           r.ProvisioningPodImage,
+				Image:           r.provisioningPodImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Command:         []string{"/bin/catatonit", "--"},
 				Args:            []string{"/bin/bash", "-c", provisioningScript},
@@ -289,7 +298,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 			}},
 		},
 	}
-	if err := ctrl.SetControllerReference(instance, desiredPod, r.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(instance, desiredPod, r.scheme); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to provision: %w", err)
 	}
 
@@ -415,7 +424,7 @@ func (r *InstanceReconciler) runDeprovisioningPod(
 			RestartPolicy:      corev1.RestartPolicyNever,
 			Containers: []corev1.Container{{
 				Name:            "deprovisioning",
-				Image:           r.ProvisioningPodImage,
+				Image:           r.provisioningPodImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Command:         []string{"/bin/catatonit", "--"},
 				Args:            []string{"/bin/bash", "-c", deprovisioningScript},
@@ -477,6 +486,9 @@ fi
 
 // SetupWithManager configures the controller manager for the Instance resource.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Client = mgr.GetClient()
+	r.scheme = mgr.GetScheme()
+	r.log = ctrl.Log.WithName("controllers").WithName("Instance")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&servicebrokerv1alpha1.Instance{}).
 		Complete(r)
@@ -486,12 +498,14 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // name.
 type ReleaseRequest struct {
 	ctrl.Request
+
+	prefix string
 }
 
 // ReleaseName returns the canonical Helm release name based on the request name. This is useful for
 // keeping name consistency across the Metabroker implementation.
 func (req ReleaseRequest) ReleaseName() string {
-	return fmt.Sprintf("metabroker-%s", req.Name)
+	return fmt.Sprintf("%s-%s", req.prefix, req.Name)
 }
 
 // ProvisioningRequest wraps ReleaseRequest for providing the name used for all the provisioning
