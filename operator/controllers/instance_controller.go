@@ -68,7 +68,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.log.WithValues("instance", req.NamespacedName)
 
-	releaseReq := ReleaseRequest{req, r.metabrokerName}
+	releaseReq := ReleaseRequest{Request: req, prefix: r.metabrokerName}
 
 	instance := &servicebrokerv1alpha1.Instance{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
