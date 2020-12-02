@@ -137,7 +137,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	valuesSecretName := fmt.Sprintf("metabroker-%s-values", instance.Name)
-	if created, err := r.valuesSecret(ctx, instance, valuesSecretName, instance.Namespace); err != nil {
+	if created, err := r.valuesSecret(ctx, instance, plan, valuesSecretName, instance.Namespace); err != nil {
 		return ctrl.Result{}, err
 	} else if created {
 		return ctrl.Result{Requeue: true}, nil
@@ -153,6 +153,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *InstanceReconciler) valuesSecret(
 	ctx context.Context,
 	instance *servicebrokerv1alpha1.Instance,
+	plan *servicebrokerv1alpha1.Plan,
 	valuesSecretName string,
 	namespace string,
 ) (bool, error) {
@@ -165,13 +166,20 @@ func (r *InstanceReconciler) valuesSecret(
 		if !errors.IsNotFound(err) {
 			return false, fmt.Errorf("failed to process values secret: %w", err)
 		}
+		values, err := mergeValues(instance, plan)
+		if err != nil {
+			// TODO: log that constructing the values failed. This is a problem with the plan
+			// config (the combination of user-provided values validation, the default values and
+			// the static values).
+			return false, nil
+		}
 		desired := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      namespacedName.Name,
 				Namespace: namespacedName.Namespace,
 				// TODO: add proper labels.
 			},
-			Data: map[string][]byte{"values.yaml": []byte(instance.Spec.Values)},
+			Data: map[string][]byte{"values.yaml": values},
 		}
 		if err := ctrl.SetControllerReference(instance, desired, r.Scheme); err != nil {
 			return false, fmt.Errorf("failed to process values secret: %w", err)
@@ -182,6 +190,36 @@ func (r *InstanceReconciler) valuesSecret(
 		return true, nil
 	}
 	return false, nil
+}
+
+// mergeValues merges the user-provided values and the default and static values provided by the
+// plan. The static values take precedence over the user-provided values, which in turn takes
+// precedence over the default values.
+func mergeValues(
+	instance *servicebrokerv1alpha1.Instance,
+	plan *servicebrokerv1alpha1.Plan,
+) ([]byte, error) {
+	userValues := make(map[string]interface{})
+	if err := yaml.Unmarshal([]byte(instance.Spec.Values), &userValues); err != nil {
+		return nil, err
+	}
+	defaultValues := make(map[string]interface{})
+	if err := yaml.Unmarshal([]byte(plan.Spec.Provisioning.Values.Default), &defaultValues); err != nil {
+		return nil, err
+	}
+	staticValues := make(map[string]interface{})
+	if err := yaml.Unmarshal([]byte(plan.Spec.Provisioning.Values.Static), &staticValues); err != nil {
+		return nil, err
+	}
+	values := make(map[string]interface{})
+	values = mergeMaps(values, defaultValues)
+	values = mergeMaps(values, userValues)
+	values = mergeMaps(values, staticValues)
+	valuesStr, err := yaml.Marshal(&values)
+	if err != nil {
+		return nil, err
+	}
+	return valuesStr, nil
 }
 
 // runProvisioningPod runs the provisioning pod. It creates the pod and its dependencies, ensuring
