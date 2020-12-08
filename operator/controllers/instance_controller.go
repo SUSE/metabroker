@@ -332,7 +332,7 @@ func (r *InstanceReconciler) runProvisioningPod(
 				VolumeMounts: []corev1.VolumeMount{{
 					Name:      "values",
 					ReadOnly:  true,
-					MountPath: "/etc/metabroker-provisioning/",
+					MountPath: "/etc/metabroker/",
 				}},
 			}},
 			Volumes: []corev1.Volume{{
@@ -393,7 +393,7 @@ helm upgrade "${NAME}" "${CHART}" \
   --install \
   --atomic \
   --namespace "${NAMESPACE}" \
-  --values "/etc/metabroker-provisioning/values.yaml"
+  --values "/etc/metabroker/values.yaml"
 `
 
 // runDeprovisioningPod runs the deprovisioning pod. It creates the pod and its dependencies,
