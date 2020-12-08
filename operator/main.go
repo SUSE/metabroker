@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/SUSE/metabroker/operator/helm"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -48,6 +49,7 @@ func main() {
 	var enableLeaderElection bool
 	var metabrokerName string
 	var provisioningPodImage string
+	var helmChartCachePath string
 	flag.StringVar(
 		&metricsAddr,
 		"metrics-addr",
@@ -73,6 +75,12 @@ func main() {
 		// TODO: handle this image properly. This is a temporary development image repository.
 		"metabroker-provisioning",
 		"The image used by the provisioning pod.",
+	)
+	flag.StringVar(
+		&helmChartCachePath,
+		"helm-chart-cache",
+		"/tmp/metabroker/cache",
+		"The path to the Metabroker Helm chart cache.",
 	)
 	flag.Parse()
 
@@ -121,11 +129,9 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
-	if err = (&controllers.CredentialReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Credential"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	helmChartCache := helm.NewChartCache(helmChartCachePath)
+	helmClient := helm.NewClient(helmChartCache)
+	if err := controllers.NewCredentialReconciler(helmClient).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Credential")
 		os.Exit(1)
 	}

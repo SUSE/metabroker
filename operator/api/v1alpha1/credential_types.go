@@ -17,45 +17,40 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// CredentialSpec defines the desired state of Credential
-type CredentialSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Credential. Edit Credential_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
-}
-
-// CredentialStatus defines the observed state of Credential
-type CredentialStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
 // +kubebuilder:object:root=true
 
-// Credential is the Schema for the credentials API
+// Credential is the top-level Schema for the Credential resource API.
 type Credential struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CredentialSpec   `json:"spec,omitempty"`
+	// A namespaced reference to an existing Instance the credential is linked to.
+	// required
+	InstanceRef corev1.ObjectReference `json:"instanceRef"`
+	// A reference to a secret in the same namespace as Instance. The secret must not be created
+	// beforehand. If the secret happens to already exist, the Credential creation process fails.
+	// required
+	SecretRef corev1.LocalObjectReference `json:"secretRef"`
+	// The observed state of the Credential.
 	Status CredentialStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// CredentialList contains a list of Credential
+// CredentialList contains a list of Credential.
 type CredentialList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Credential `json:"items"`
+}
+
+// CredentialStatus defines the observed state of Credential.
+type CredentialStatus struct {
+	// TODO: implement.
 }
 
 func init() {

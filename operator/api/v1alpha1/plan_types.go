@@ -87,7 +87,7 @@ type PlanBindingCredentialsRunContainerSpec struct {
 	Image string `json:"image"`
 	// The entrypoint command used for the container.
 	// +optional
-	Command string `json:"command,omitempty"`
+	Command []string `json:"command,omitempty"`
 	// The arguments passed to the entrypoint command.
 	// +optional
 	Args []string `json:"args,omitempty"`
