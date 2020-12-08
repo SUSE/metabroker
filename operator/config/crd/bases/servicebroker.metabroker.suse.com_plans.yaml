@@ -55,7 +55,9 @@ spec:
                             type: array
                           command:
                             description: The entrypoint command used for the container.
-                            type: string
+                            items:
+                              type: string
+                            type: array
                           image:
                             description: The image repository, including the registry.
                             type: string

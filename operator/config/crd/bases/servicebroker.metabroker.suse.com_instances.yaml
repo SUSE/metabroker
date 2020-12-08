@@ -26,6 +26,24 @@ spec:
               of an object. Servers should convert recognized schemas to the latest
               internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
+          helmRef:
+            description: The reference to the Helm installation that contains the
+              Instance workload.
+            properties:
+              name:
+                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                  TODO: Add other useful fields. apiVersion, kind, uid?'
+                type: string
+            type: object
+          helmValuesRef:
+            description: The reference to the secret containing the Helm installation
+              values for the Instance.
+            properties:
+              name:
+                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                  TODO: Add other useful fields. apiVersion, kind, uid?'
+                type: string
+            type: object
           kind:
             description: 'Kind is a string value representing the REST resource this
               object represents. Servers may infer this from the endpoint the client
