@@ -1,8 +1,0 @@
-apiVersion: servicebroker.metabroker.suse.com/v1alpha1
-kind: Offering
-metadata:
-  name: offering-sample
-spec:
-  provider: provider-sample
-  description: A sample offering.
-  bindable: true
