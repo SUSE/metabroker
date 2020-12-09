@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -63,7 +62,10 @@ func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if len(offering.OwnerReferences) == 0 {
 		if err := r.setControllingOwner(ctx, &req, offering); err != nil {
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+			if errors.IsNotFound(err) {
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+			}
+			return ctrl.Result{}, err
 		}
 		offeringNeedsUpdate = true
 	}
@@ -93,10 +95,10 @@ func (r *OfferingReconciler) setControllingOwner(
 	providerNamespacedName.Name = offering.Spec.Provider
 	provider := &servicebrokerv1alpha1.Provider{}
 	if err := r.Get(ctx, providerNamespacedName, provider); err != nil {
-		return fmt.Errorf("failed to set ownership: %w", err)
+		return err
 	}
 	if err := ctrl.SetControllerReference(provider, offering, r.Scheme); err != nil {
-		return fmt.Errorf("failed to set ownership: %w", err)
+		return err
 	}
 	return nil
 }
