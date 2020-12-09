@@ -90,7 +90,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if len(instance.OwnerReferences) == 0 {
 		if err := ctrl.SetControllerReference(plan, instance, r.scheme); err != nil {
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, err
 		}
 		instanceNeedsUpdate = true
 	}
