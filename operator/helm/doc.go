@@ -13,16 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package helm provides a wrapper around helm.sh/helm/v3 functionality for managing charts and
+// installations programmatically without the Helm binary.
 package helm
-
-import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-)
-
-func TestHelm(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Helm Suite")
-}
