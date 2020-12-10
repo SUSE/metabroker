@@ -65,6 +65,10 @@ spec:
           set -o errexit -o nounset -o pipefail
 
           binding_user="${METABROKER_CREDENTIAL_NAME//-/_}"
+          # Generate a random 64 character string in the range [0-9a-zA-Z] from /dev/urandom.
+          # grep reads the stream of bytes trying to match a character in the given regex range
+          # until it reaches 64 characters. There will be 64 lines containing 1 character each.
+          # tr removes all the line breaks, forming a continuous sequence of 64 characters.
           binding_pass=$(grep --text --only-matching --max-count=64 -E '[0-9a-zA-Z]$' /dev/urandom | tr -d '\n')
 
           pg_host="${METABROKER_INSTANCE_HELM_NAME}-postgresql"
