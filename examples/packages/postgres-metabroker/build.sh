@@ -8,4 +8,4 @@ cd "$(dirname "${0}")"
 
 docker buildx build \
     --tag "${IMAGE_TAG}" \
-    --file "Dockerfile.credential" .
+    --file "images/Dockerfile.credential" .
