@@ -37,7 +37,7 @@ spec:
         properties:
           postgresqlDatabase:
             type: string
-            pattern: "^[\\w\u00C0-\u017F]{2,31}$"
+            pattern: "^[a-z][\\w_]{1,30}$"
       default: |
         postgresqlDatabase: {{ $.Release.Name | quote }}
         postgresqlUsername: postgres
