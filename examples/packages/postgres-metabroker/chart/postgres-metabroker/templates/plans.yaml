@@ -71,8 +71,10 @@ spec:
           # tr removes all the line breaks, forming a continuous sequence of 64 characters.
           binding_pass=$(grep --text --only-matching --max-count=64 -E '[0-9a-zA-Z]$' /dev/urandom | tr -d '\n')
 
-          pg_host="${METABROKER_INSTANCE_HELM_NAME}-postgresql"
-          pg_database=$(yq read "${METABROKER_VALUES_FILE}" 'postgresqlDatabase')
+          PGHOST="${METABROKER_INSTANCE_HELM_NAME}-postgresql"
+          export PGHOST
+          PGDATABASE=$(yq read "${METABROKER_VALUES_FILE}" 'postgresqlDatabase')
+          export PGDATABASE
 
           output_patch=$(cat <<EOF
             {
@@ -81,9 +83,9 @@ spec:
                 "password": "$(base64 <<<"${binding_pass}")",
                 "protocol": "$(base64 <<<"postgresql")",
                 "port": "$(base64 <<<"5432")",
-                "host": "$(base64 <<<"${pg_host}")",
-                "database": "$(base64 <<<"${pg_database}")",
-                "uri": "$(base64 <<<"postgresql://${binding_user}:${binding_pass}@${pg_host}:5432/${pg_database}")"
+                "host": "$(base64 <<<"${PGHOST}")",
+                "database": "$(base64 <<<"${PGDATABASE}")",
+                "uri": "$(base64 <<<"postgresql://${binding_user}:${binding_pass}@${PGHOST}:5432/${PGDATABASE}")"
               }
             }
           EOF
@@ -91,29 +93,28 @@ spec:
           kubectl patch "${METABROKER_OUTPUT}" --patch="${output_patch//$'\n'/}"
 
           # The admin password for the database to create the new credentials.
-          pg_password=$(kubectl get secret "${METABROKER_INSTANCE_HELM_NAME}-postgresql" \
+          PGPASSWORD=$(kubectl get secret "${METABROKER_INSTANCE_HELM_NAME}-postgresql" \
             --output jsonpath='{ .data.postgresql-password }' \
             | base64 --decode)
+          export PGPASSWORD
+          export PGUSER="postgres"
 
           revoke_if_exists_query=$(cat <<SQL
             DO
             \$do\$
             BEGIN
               IF EXISTS (SELECT FROM pg_roles WHERE rolname = '${binding_user}') THEN
-                REVOKE ALL PRIVILEGES ON DATABASE ${pg_database} FROM ${binding_user};
+                REVOKE ALL PRIVILEGES ON DATABASE ${PGDATABASE} FROM ${binding_user};
               END IF;
             END
             \$do\$
           SQL
           )
-          psql "postgresql://postgres:${pg_password}@${pg_host}/${pg_database}" \
-            --command "${revoke_if_exists_query}"
+          psql --command "${revoke_if_exists_query}"
 
           create_user_query="DROP ROLE IF EXISTS ${binding_user}; CREATE USER ${binding_user} WITH PASSWORD '${binding_pass}' NOCREATEDB;"
-          psql "postgresql://postgres:${pg_password}@${pg_host}/${pg_database}" \
-            --command "${create_user_query}"
+          psql --command "${create_user_query}"
 
-          grant_privileges_query="GRANT ALL PRIVILEGES ON DATABASE ${pg_database} TO ${binding_user};"
-          psql "postgresql://postgres:${pg_password}@${pg_host}/${pg_database}" \
-            --command "${grant_privileges_query}"
+          grant_privileges_query="GRANT ALL PRIVILEGES ON DATABASE ${PGDATABASE} TO ${binding_user};"
+          psql --command "${grant_privileges_query}"
 {{- end }}
