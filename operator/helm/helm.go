@@ -217,6 +217,12 @@ func NewChartCache(cachePath string) *ChartCache {
 // Fetch downloads a chart tarball if needed, adding it to the cache. The
 // returned tarball is always a handle to the cached file.
 func (cc *ChartCache) Fetch(chartInfo ChartInfo) (io.ReadCloser, error) {
+	// TODO: a better strategy to handling the cache is to build it when a Plan is reconciled.
+	// Instances should then wait for the Plan to become ready, i.e. waiting for the chart to be
+	// cached.
+	cc.mutex.Lock()
+	defer cc.mutex.Unlock()
+
 	fileName := fmt.Sprintf("%s.tgz", chartInfo.SHA256Sum)
 	filePath := path.Join(cc.cachePath, fileName)
 	if _, err := cc.osStat(filePath); err == nil {
@@ -248,9 +254,6 @@ func (cc *ChartCache) Fetch(chartInfo ChartInfo) (io.ReadCloser, error) {
 }
 
 func (cc *ChartCache) cache(filePath string, data io.Reader, sha256sum string) error {
-	cc.mutex.Lock()
-	defer cc.mutex.Unlock()
-
 	w, err := cc.osOpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to cache %q: %w", filePath, err)
