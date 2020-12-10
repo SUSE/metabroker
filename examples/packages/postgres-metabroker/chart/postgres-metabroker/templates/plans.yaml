@@ -88,7 +88,7 @@ spec:
             }
           EOF
           )
-          kubectl patch "${METABROKER_OUTPUT}" --patch="$(tr -d '\n' <<<"${output_patch}")"
+          kubectl patch "${METABROKER_OUTPUT}" --patch="${output_patch//$'\n'/}"
 
           # The admin password for the database to create the new credentials.
           pg_password=$(kubectl get secret "${METABROKER_INSTANCE_HELM_NAME}-postgresql" \
