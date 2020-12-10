@@ -37,8 +37,8 @@ import (
 )
 
 const (
-	driver           = "secret"
-	defaultNamespace = "default"
+	backendStorageDriver = "secret"
+	defaultNamespace     = "default"
 
 	// Empty values for these mean the internal defaults will be used.
 	defaultKubeConfig = ""
@@ -187,7 +187,7 @@ func (c *Client) config(namespace string) (*action.Configuration, error) {
 		// TODO(f0rmiga): provide a logic for Helm debugging logs.
 	}
 	cfg := &action.Configuration{}
-	if err := cfg.Init(restGetter, namespace, driver, debug); err != nil {
+	if err := cfg.Init(restGetter, namespace, backendStorageDriver, debug); err != nil {
 		return nil, fmt.Errorf("failed to provide action configuration: %w", err)
 	}
 	return cfg, nil
