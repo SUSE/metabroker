@@ -259,7 +259,7 @@ func (cc *ChartCache) cache(filePath string, data io.Reader, sha256sum string) e
 
 	h := sha256.New()
 
-	if _, err = fanout(data, w, h); err != nil {
+	if _, err := fanout(data, w, h); err != nil {
 		w.Close()
 		os.Remove(filePath)
 		return fmt.Errorf("failed to cache %q: %w", filePath, err)
@@ -284,12 +284,13 @@ type HTTPGetter interface {
 	Get(url string) (resp *http.Response, err error)
 }
 
-func fanout(r io.Reader, ws ...io.Writer) ([]byte, error) {
+// fanout writes the data from the reader to the many writers it can take.
+func fanout(r io.Reader, ws ...io.Writer) (written int64, err error) {
 	var ir io.Reader = r
 	for _, w := range ws {
 		ir = io.TeeReader(ir, w)
 	}
-	return ioutil.ReadAll(ir)
+	return io.Copy(ioutil.Discard, ir)
 }
 
 // Release is a wrapper around "helm.sh/helm/v3/pkg/release".Release for
