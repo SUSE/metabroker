@@ -99,22 +99,17 @@ spec:
           export PGPASSWORD
           export PGUSER="postgres"
 
-          revoke_if_exists_query=$(cat <<SQL
+          psql <<SQL
             DO
             \$do\$
             BEGIN
               IF EXISTS (SELECT FROM pg_roles WHERE rolname = '${binding_user}') THEN
                 REVOKE ALL PRIVILEGES ON DATABASE ${PGDATABASE} FROM ${binding_user};
+                DROP ROLE ${binding_user};
               END IF;
+              CREATE USER ${binding_user} WITH PASSWORD '${binding_pass}' NOCREATEDB;
+              GRANT ALL PRIVILEGES ON DATABASE ${PGDATABASE} TO ${binding_user};
             END
             \$do\$
           SQL
-          )
-          psql --command "${revoke_if_exists_query}"
-
-          create_user_query="DROP ROLE IF EXISTS ${binding_user}; CREATE USER ${binding_user} WITH PASSWORD '${binding_pass}' NOCREATEDB;"
-          psql --command "${create_user_query}"
-
-          grant_privileges_query="GRANT ALL PRIVILEGES ON DATABASE ${PGDATABASE} TO ${binding_user};"
-          psql --command "${grant_privileges_query}"
 {{- end }}
