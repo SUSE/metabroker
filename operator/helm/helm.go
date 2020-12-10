@@ -54,7 +54,7 @@ type Installer interface {
 	Install(name string, chartInfo ChartInfo, opts InstallOpts) error
 }
 
-// ChartInfo holds the URL and SHA 256 sum for a chart tarball.
+// ChartInfo contains information necessary to identify a helm chart archive for installation.
 type ChartInfo struct {
 	URL, SHA256Sum string
 }
