@@ -57,7 +57,7 @@ spec:
   binding:
     credentials:
       runContainer:
-        image: {{ $plan.binding.image }}
+        image: {{ $plan.binding.image | quote }}
         command: [/bin/bash]
         args:
         - -c
