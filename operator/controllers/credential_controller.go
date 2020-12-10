@@ -99,6 +99,7 @@ func (r *CredentialReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		if err := r.Update(ctx, credential); err != nil {
 			return ctrl.Result{}, err
 		}
+		// TODO: make this a constant.
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
