@@ -223,7 +223,7 @@ func (r *CredentialReconciler) runBindingPod(
 			return ctrl.Result{}, fmt.Errorf("failed to bind; could not parse group version for %q: %w", obj.Name, err)
 		}
 		kwg := kindWithGroup{kind: obj.Kind, group: gv.Group}
-		resource, err := r.resourceForKindWithGroup(kwg)
+		resource, err := r.resourceForKind(kwg)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to bind; could not find resource for kind %q: %w", kwg, err)
 		}
@@ -509,19 +509,19 @@ func (r *CredentialReconciler) runBindingPod(
 	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
-func (r *CredentialReconciler) resourceForKindWithGroup(
-	kwg kindWithGroup,
-) (metav1.APIResource, error) {
+// resourceForKind returns the APIResource object for a given Group and Kind. This is useful for
+// obtaining the resource name as expected by the RBAC policy rules.
+func (r *CredentialReconciler) resourceForKind(kwg kindWithGroup) (metav1.APIResource, error) {
 	resource, exists := r.resourceCache[kwg]
 	if !exists {
 		// TODO: this is definitely not the best way of dealing with a missing resource in the local
 		// cache. While this is fine for a prototype, it can crash the controller pod or the node
 		// (depending on the pod resources) if the kind with the specified group doesn't exist on
-		// the API server (or if the API server goes off for a little walk), or crash the node .
+		// the API server (or if the API server goes off for a little walk), or crash the node.
 		if err := r.updateResourceCache(); err != nil {
 			return metav1.APIResource{}, err
 		}
-		return r.resourceForKindWithGroup(kwg)
+		return r.resourceForKind(kwg)
 	}
 	return resource, nil
 }
