@@ -1,0 +1,17 @@
+plans:
+- name: small
+  description: A 1-instance PostgreSQL plan.
+  config:
+    readReplicas: 0
+  binding: &binding
+    image: postgres-metabroker-credential
+- name: medium
+  description: A 3-instance (1 master, 2 slave) PostgreSQL plan.
+  config:
+    readReplicas: 2
+  binding: *binding
+- name: large
+  description: A 5-instance (1 master, 4 slave) PostgreSQL plan.
+  config:
+    readReplicas: 4
+  binding: *binding

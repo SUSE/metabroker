@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,8 +51,14 @@ type Instance struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// The specification of the desired behaviour of the Instance.
-	Spec   InstanceSpec   `json:"spec,omitempty"`
-	Status InstanceStatus `json:"status,omitempty"`
+	Spec InstanceSpec `json:"spec,omitempty"`
+	// The reference to the Helm installation that contains the Instance workload.
+	// +optional
+	HelmRef corev1.LocalObjectReference `json:"helmRef,omitempty"`
+	// The reference to the secret containing the Helm installation values for the Instance.
+	// +optional
+	HelmValuesRef corev1.LocalObjectReference `json:"helmValuesRef,omitempty"`
+	Status        InstanceStatus              `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

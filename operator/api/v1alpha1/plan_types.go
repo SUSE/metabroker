@@ -77,7 +77,18 @@ type PlanBindingSpec struct {
 
 // PlanBindingCredentialsSpec defines the Credentials spec for a Binding.
 type PlanBindingCredentialsSpec struct {
-	// The container specification for the logic of binding an Instance of the Plan.
+	// The container specification for the logic of binding an Instance of the Plan. Instance
+	// specifics are passed to the container process via environment variables and mounted files.
+	// Environment variables:
+	//   - METABROKER_INSTANCE_NAME: the name of the Instance being bound.
+	//   - METABROKER_INSTANCE_HELM_NAME: the generated name for the Instance Helm installation.
+	//   - METABROKER_CREDENTIAL_NAME: the name of the Credential that triggered the binding.
+	//   - METABROKER_VALUES_FILE: a path to the values YAML file used in the Instance Helm
+	//       installation.
+	//   - METABROKER_HELM_OBJECTS_LIST_FILE: a path to the file containing a list of all recources
+	//       directly created by the provisioning Helm installation.
+	//   - METABROKER_OUTPUT: the name of the Kubernetes object to be patched to output the
+	//       generated credentials in the format "secret/<name>".
 	RunContainer PlanBindingCredentialsRunContainerSpec `json:"runContainer"`
 }
 
@@ -87,7 +98,7 @@ type PlanBindingCredentialsRunContainerSpec struct {
 	Image string `json:"image"`
 	// The entrypoint command used for the container.
 	// +optional
-	Command string `json:"command,omitempty"`
+	Command []string `json:"command,omitempty"`
 	// The arguments passed to the entrypoint command.
 	// +optional
 	Args []string `json:"args,omitempty"`

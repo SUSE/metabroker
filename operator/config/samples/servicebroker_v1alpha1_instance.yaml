@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: instance-sample
 spec:
-  plan: plan-sample
+  plan: postgres-metabroker-small
   values: |
     postgresqlDatabase: my_pg_database
   validateValues: true

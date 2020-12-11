@@ -107,6 +107,16 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		instanceNeedsUpdate = true
 	}
 
+	if instance.HelmRef.Name == "" {
+		instance.HelmRef.Name = releaseReq.ReleaseName()
+		instanceNeedsUpdate = true
+	}
+
+	if instance.HelmValuesRef.Name == "" {
+		instance.HelmValuesRef.Name = fmt.Sprintf("%s-values", releaseReq.ReleaseName())
+		instanceNeedsUpdate = true
+	}
+
 	if instanceNeedsUpdate {
 		if err := r.Update(ctx, instance); err != nil {
 			return ctrl.Result{}, err
@@ -145,8 +155,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	valuesSecretName := fmt.Sprintf("metabroker-%s-values", instance.Name)
-	if created, err := r.valuesSecret(ctx, instance, plan, valuesSecretName, instance.Namespace); err != nil {
+	if created, err := r.valuesSecret(ctx, instance, plan, instance.Namespace); err != nil {
 		return ctrl.Result{}, err
 	} else if created {
 		return ctrl.Result{Requeue: true}, nil
@@ -154,7 +163,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// TODO: determine if the provisioning pod should run again for a Helm upgrade or not.
 
-	return r.runProvisioningPod(ctx, ProvisioningRequest{releaseReq}, instance, plan, valuesSecretName)
+	return r.runProvisioningPod(ctx, ProvisioningRequest{releaseReq}, instance, plan)
 }
 
 // valuesSecret creates a Secret containing the values.yaml content if it doesn't exist yet.
@@ -163,11 +172,10 @@ func (r *InstanceReconciler) valuesSecret(
 	ctx context.Context,
 	instance *servicebrokerv1alpha1.Instance,
 	plan *servicebrokerv1alpha1.Plan,
-	valuesSecretName string,
 	namespace string,
 ) (bool, error) {
 	namespacedName := types.NamespacedName{
-		Name:      valuesSecretName,
+		Name:      instance.HelmValuesRef.Name,
 		Namespace: namespace,
 	}
 	current := &corev1.Secret{}
@@ -238,7 +246,6 @@ func (r *InstanceReconciler) runProvisioningPod(
 	req ProvisioningRequest,
 	instance *servicebrokerv1alpha1.Instance,
 	plan *servicebrokerv1alpha1.Plan,
-	valuesSecretName string,
 ) (ctrl.Result, error) {
 	namespacedName := types.NamespacedName{
 		Name:      req.Name(),
@@ -318,20 +325,20 @@ func (r *InstanceReconciler) runProvisioningPod(
 				Command:         []string{"/bin/catatonit", "--"},
 				Args:            []string{"/bin/bash", "-c", provisioningScript},
 				Env: []corev1.EnvVar{
-					{Name: "NAME", Value: req.ReleaseName()},
+					{Name: "NAME", Value: instance.HelmRef.Name},
 					{Name: "CHART", Value: plan.Spec.Provisioning.Chart.URL},
 					{Name: "NAMESPACE", Value: instance.Namespace},
 				},
 				VolumeMounts: []corev1.VolumeMount{{
 					Name:      "values",
 					ReadOnly:  true,
-					MountPath: "/etc/metabroker-provisioning/",
+					MountPath: "/etc/metabroker/",
 				}},
 			}},
 			Volumes: []corev1.Volume{{
 				Name: "values",
 				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{SecretName: valuesSecretName},
+					Secret: &corev1.SecretVolumeSource{SecretName: instance.HelmValuesRef.Name},
 				},
 			}},
 		},
@@ -386,7 +393,7 @@ helm upgrade "${NAME}" "${CHART}" \
   --install \
   --atomic \
   --namespace "${NAMESPACE}" \
-  --values "/etc/metabroker-provisioning/values.yaml"
+  --values "/etc/metabroker/values.yaml"
 `
 
 // runDeprovisioningPod runs the deprovisioning pod. It creates the pod and its dependencies,

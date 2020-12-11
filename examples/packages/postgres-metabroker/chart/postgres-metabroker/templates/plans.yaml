@@ -1,0 +1,115 @@
+{{- /*
+Copyright 2020 SUSE
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/ -}}
+
+{{- range $plan := .Values.plans }}
+---
+apiVersion: servicebroker.metabroker.suse.com/v1alpha1
+kind: Plan
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $plan.name | quote }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "postgres-metabroker.labels" $ | nindent 4 }}
+spec:
+  offering: {{ $.Release.Name | quote }}
+  description: {{ $plan.description | quote }}
+  provisioning:
+    chart:
+      url: https://charts.bitnami.com/bitnami/postgresql-10.1.2.tgz
+    values:
+      schema: |
+        "$schema": http://json-schema.org/draft-07/schema#
+        type: object
+        additionalProperties: false
+        properties:
+          postgresqlDatabase:
+            type: string
+            pattern: "^[a-z][\\w_]{1,30}$"
+      default: |
+        postgresqlDatabase: {{ $.Release.Name | quote }}
+        postgresqlUsername: postgres
+        # TODO: remove this hardcoded password.
+        postgresqlPassword: postgres
+      static: |
+        replication:
+          {{- if (gt (int $plan.config.readReplicas) 0) }}
+          enabled: true
+          readReplicas: {{ $plan.config.readReplicas }}
+          synchronousCommit: "on"
+          numSynchronousReplicas: {{ $plan.config.readReplicas }}
+          applicationName: {{ $.Release.Name | quote }}
+          {{- else }}
+          enabled: false
+          {{- end }}
+  binding:
+    credentials:
+      runContainer:
+        image: {{ $plan.binding.image | quote }}
+        command: [/bin/bash]
+        args:
+        - -c
+        - |
+          set -o errexit -o nounset -o pipefail
+
+          binding_user="${METABROKER_CREDENTIAL_NAME//-/_}"
+          # Generate a random 64 character string in the range [0-9a-zA-Z] from /dev/urandom.
+          # grep reads the stream of bytes trying to match a character in the given regex range
+          # until it reaches 64 characters. There will be 64 lines containing 1 character each.
+          # tr removes all the line breaks, forming a continuous sequence of 64 characters.
+          binding_pass=$(grep --text --only-matching --max-count=64 -E '[0-9a-zA-Z]$' /dev/urandom | tr -d '\n')
+
+          PGHOST="${METABROKER_INSTANCE_HELM_NAME}-postgresql"
+          export PGHOST
+          PGDATABASE=$(yq read "${METABROKER_VALUES_FILE}" 'postgresqlDatabase')
+          export PGDATABASE
+
+          output_patch=$(cat <<EOF
+            {
+              "data": {
+                "username": "$(base64 <<<"${binding_user}")",
+                "password": "$(base64 <<<"${binding_pass}")",
+                "protocol": "$(base64 <<<"postgresql")",
+                "port": "$(base64 <<<"5432")",
+                "host": "$(base64 <<<"${PGHOST}")",
+                "database": "$(base64 <<<"${PGDATABASE}")",
+                "uri": "$(base64 <<<"postgresql://${binding_user}:${binding_pass}@${PGHOST}:5432/${PGDATABASE}")"
+              }
+            }
+          EOF
+          )
+          kubectl patch "${METABROKER_OUTPUT}" --patch="${output_patch//$'\n'/}"
+
+          # The admin password for the database to create the new credentials.
+          PGPASSWORD=$(kubectl get secret "${METABROKER_INSTANCE_HELM_NAME}-postgresql" \
+            --output jsonpath='{ .data.postgresql-password }' \
+            | base64 --decode)
+          export PGPASSWORD
+          export PGUSER="postgres"
+
+          psql <<SQL
+            DO
+            \$do\$
+            BEGIN
+              IF EXISTS (SELECT FROM pg_roles WHERE rolname = '${binding_user}') THEN
+                REVOKE ALL PRIVILEGES ON DATABASE ${PGDATABASE} FROM ${binding_user};
+                DROP ROLE ${binding_user};
+              END IF;
+              CREATE USER ${binding_user} WITH PASSWORD '${binding_pass}' NOCREATEDB;
+              GRANT ALL PRIVILEGES ON DATABASE ${PGDATABASE} TO ${binding_user};
+            END
+            \$do\$
+          SQL
+{{- end }}

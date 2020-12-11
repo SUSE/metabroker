@@ -3,6 +3,7 @@ module github.com/SUSE/metabroker/operator
 go 1.13
 
 require (
+	github.com/SUSE/metabroker/operator/helm v0.0.0-00010101000000-000000000000
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.1.0
 	github.com/google/uuid v1.1.1
@@ -14,3 +15,5 @@ require (
 	k8s.io/client-go v0.17.2
 	sigs.k8s.io/controller-runtime v0.5.0
 )
+
+replace github.com/SUSE/metabroker/operator/helm => ./helm
