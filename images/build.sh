@@ -2,10 +2,10 @@
 
 set -o errexit -o nounset -o pipefail
 
-: "${IMAGE_TAG:=postgres-metabroker-credential}"
+: "${IMAGE_TAG:=metabroker-provisioning}"
 
 cd "$(dirname "${0}")"
 
 docker buildx build \
     --tag "${IMAGE_TAG}" \
-    --file "images/Dockerfile.credential" .
+    --file "Dockerfile.provisioning" .
