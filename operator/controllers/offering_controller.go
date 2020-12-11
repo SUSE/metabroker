@@ -58,25 +58,9 @@ func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	offeringNeedsUpdate := false
-
-	if len(offering.OwnerReferences) == 0 {
-		if err := r.setControllingOwner(ctx, &req, offering); err != nil {
-			if errors.IsNotFound(err) {
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
-			}
-			return ctrl.Result{}, err
-		}
-		offeringNeedsUpdate = true
-	}
-
 	if offering.Spec.ID == "" {
 		id := uuid.Must(uuid.NewUUID()) // UUID v1
 		offering.Spec.ID = id.String()
-		offeringNeedsUpdate = true
-	}
-
-	if offeringNeedsUpdate {
 		if err := r.Update(ctx, offering); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -84,23 +68,6 @@ func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *OfferingReconciler) setControllingOwner(
-	ctx context.Context,
-	req *ctrl.Request,
-	offering *servicebrokerv1alpha1.Offering,
-) error {
-	providerNamespacedName := req.NamespacedName
-	providerNamespacedName.Name = offering.Spec.Provider
-	provider := &servicebrokerv1alpha1.Provider{}
-	if err := r.Get(ctx, providerNamespacedName, provider); err != nil {
-		return err
-	}
-	if err := ctrl.SetControllerReference(provider, offering, r.Scheme); err != nil {
-		return err
-	}
-	return nil
 }
 
 // SetupWithManager configures the controller manager for the Offering resource.
