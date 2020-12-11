@@ -47,13 +47,6 @@ spec:
                 description: A unique ID for the Plan to be used by OSBAPI. If not
                   provided, a UUID v1 is auto-generated.
                 type: string
-              provider:
-                description: The name of the Provider this Offering belongs to. This
-                  Offering will automatically be deleted when the provider specified
-                  here is deleted.
-                type: string
-            required:
-            - provider
             type: object
           status:
             description: OfferingStatus defines the observed state of Offering.
