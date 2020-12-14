@@ -100,10 +100,14 @@ spec:
                     description: Chart contains what chart to be used to provision
                       an Instance of the Plan.
                     properties:
+                      sha256:
+                        description: The SHA-256 checksum for the Chart tarball.
+                        type: string
                       url:
                         description: The URL for the Chart tarball.
                         type: string
                     required:
+                    - sha256
                     - url
                     type: object
                   values:

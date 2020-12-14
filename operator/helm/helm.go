@@ -19,6 +19,7 @@ package helm
 import (
 	"bytes"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,8 +33,9 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"helm.sh/helm/v3/pkg/storage/driver"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/resource"
 )
 
 const (
@@ -49,9 +51,12 @@ const (
 	helmMaxNameLength = 53
 )
 
-// Installer is the interface that wraps the Install method for Helm.
-type Installer interface {
-	Install(name string, chartInfo ChartInfo, opts InstallOpts) error
+// Client is the interface that wraps all the Helm methods.
+type Client interface {
+	Install(name string, chartInfo ChartInfo, opts InstallOpts) (*release.Release, error)
+	Uninstall(name string, opts UninstallOpts) error
+	Get(name string, opts GetOpts) (*release.Release, error)
+	ListResources(rel *release.Release, opts ListResourcesOpts) (kube.ResourceList, error)
 }
 
 // ChartInfo contains information necessary to identify a helm chart archive for installation.
@@ -82,20 +87,11 @@ type InstallOpts struct {
 	Wait        bool
 }
 
-// Uninstaller is the interface that wraps the Uninstall method for Helm.
-type Uninstaller interface {
-	Uninstall(name string, opts UninstallOpts) error
-}
-
 // UninstallOpts are the Helm uninstall options.
 type UninstallOpts struct {
 	Description string
 	Namespace   NamespaceOpt
-}
-
-// Getter is the interface that wraps the Get method for Helm.
-type Getter interface {
-	Get(name string, opts GetOpts) error
+	Timeout     time.Duration
 }
 
 // GetOpts are the Helm get options.
@@ -103,46 +99,53 @@ type GetOpts struct {
 	Namespace NamespaceOpt
 }
 
-// Client is a Helm client that satisfies the Installer and Uninstaller
-// interfaces.
-type Client struct {
+// ListResourcesOpts are the required options for listing the resources of a Helm installation.
+type ListResourcesOpts struct {
+	Namespace NamespaceOpt
+}
+
+// IsReadyOpts are the required options for determining whether a Helm installation is ready or not.
+type IsReadyOpts struct {
+	Namespace NamespaceOpt
+}
+
+type client struct {
 	chartCache *ChartCache
 }
 
 // NewClient constructs a new Client.
-func NewClient(chartCache *ChartCache) *Client {
-	return &Client{
+func NewClient(chartCache *ChartCache) Client {
+	return &client{
 		chartCache: chartCache,
 	}
 }
 
-// Install satisfies the Installer interface. It installs a Helm chart from a
-// ChartInfo using its URL and SHA 256 sum to verify its integrity. The chart
-// tarball is cached for future uses based on the checksum.
-func (c *Client) Install(name string, chartInfo ChartInfo, opts InstallOpts) error {
+// Install installs a Helm chart from a ChartInfo using its URL and SHA 256 sum to verify its
+// integrity. The chart tarball is cached for future uses based on the checksum.
+func (c *client) Install(name string, chartInfo ChartInfo, opts InstallOpts) (*release.Release, error) {
 	if len(name) > helmMaxNameLength {
 		err := fmt.Errorf(
 			"invalid release name %q: names cannot exceed %d characters",
 			name,
 			helmMaxNameLength)
-		return fmt.Errorf("failed to install Helm chart %q: %w", name, err)
+		return nil, fmt.Errorf("failed to install Helm chart %q: %w", name, err)
 	}
 
 	chartFile, err := c.chartCache.Fetch(chartInfo)
 	if err != nil {
-		return fmt.Errorf("failed to install Helm chart %q: %w", name, err)
+		return nil, fmt.Errorf("failed to install Helm chart %q: %w", name, err)
 	}
 	defer chartFile.Close()
 
 	chart, err := loader.LoadArchive(chartFile)
 	if err != nil {
-		return fmt.Errorf("failed to install Helm chart %q: %w", name, err)
+		return nil, fmt.Errorf("failed to install Helm chart %q: %w", name, err)
 	}
 
 	namespace := opts.Namespace.ValueOrDefault()
 	cfg, err := c.config(namespace)
 	if err != nil {
-		return fmt.Errorf("failed to install Helm chart %q: %w", name, err)
+		return nil, fmt.Errorf("failed to install Helm chart %q: %w", name, err)
 	}
 	client := action.NewInstall(cfg)
 	client.ReleaseName = name
@@ -152,36 +155,62 @@ func (c *Client) Install(name string, chartInfo ChartInfo, opts InstallOpts) err
 	client.Timeout = opts.Timeout
 	client.Wait = opts.Wait
 
-	if _, err := client.Run(chart, opts.Values); err != nil {
-		return fmt.Errorf("failed to install Helm chart %q: %w", name, err)
+	rel, err := client.Run(chart, opts.Values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to install Helm chart %q: %w", name, err)
 	}
 
+	return rel, nil
+}
+
+// Uninstall uninstalls a Helm release by name. Uninstall returns nil if the release doesn't exist.
+func (c *client) Uninstall(name string, opts UninstallOpts) error {
+	namespace := opts.Namespace.ValueOrDefault()
+	cfg, err := c.config(namespace)
+	if err != nil {
+		return fmt.Errorf("failed to uninstall Helm release %q: %w", name, err)
+	}
+	client := action.NewUninstall(cfg)
+	client.Description = opts.Description
+	if _, err := client.Run(name); err != nil {
+		if errors.Is(err, driver.ErrReleaseNotFound) {
+			return nil
+		}
+		return fmt.Errorf("failed to uninstall Helm release %q: %w", name, err)
+	}
 	return nil
 }
 
-// Uninstall satisfies the Uninstaller interface. It uninstalls a Helm
-// installation using its name.
-func (c *Client) Uninstall(name string, opts UninstallOpts) error {
-	// TODO: implement.
-	return nil
-}
-
-// Get satisfies the Get interface. It gets a Helm installation using its name.
-func (c *Client) Get(name string, opts GetOpts) (*Release, error) {
+// Get gets a Helm installation using its name.
+func (c *client) Get(name string, opts GetOpts) (*release.Release, error) {
 	namespace := opts.Namespace.ValueOrDefault()
 	cfg, err := c.config(namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Helm release %q: %w", name, err)
 	}
 	client := action.NewGet(cfg)
-	res, err := client.Run(name)
+	rel, err := client.Run(name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Helm release %q: %w", name, err)
 	}
-	return &Release{res}, nil
+	return rel, nil
 }
 
-func (c *Client) config(namespace string) (*action.Configuration, error) {
+// ListResources lists the Kubernetes resources for a given Helm release.
+func (c *client) ListResources(rel *release.Release, opts ListResourcesOpts) (kube.ResourceList, error) {
+	namespace := opts.Namespace.ValueOrDefault()
+	cfg, err := c.config(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list resources for Helm release %q: %w", rel.Name, err)
+	}
+	current, err := cfg.KubeClient.Build(bytes.NewBufferString(rel.Manifest), false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list resources for Helm release %q: %w", rel.Name, err)
+	}
+	return current, nil
+}
+
+func (c *client) config(namespace string) (*action.Configuration, error) {
 	restGetter := kube.GetConfig(defaultKubeConfig, defaultContext, namespace)
 	debug := func(format string, v ...interface{}) {
 		// TODO(f0rmiga): provide a logic for Helm debugging logs.
@@ -254,7 +283,7 @@ func (cc *ChartCache) Fetch(chartInfo ChartInfo) (io.ReadCloser, error) {
 }
 
 func (cc *ChartCache) cache(filePath string, data io.Reader, sha256sum string) error {
-	w, err := cc.osOpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0)
+	w, err := cc.osOpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to cache %q: %w", filePath, err)
 	}
@@ -296,33 +325,8 @@ func fanout(r io.Reader, ws ...io.Writer) (written int64, err error) {
 	return io.Copy(ioutil.Discard, ir)
 }
 
-// Release is a wrapper around "helm.sh/helm/v3/pkg/release".Release for
-// extending its functionality.
-type Release struct {
-	*release.Release
-}
-
-// ListKubernetesObjects lists the Kubernetes objects installed by the Helm
-// release.
-func (rel *Release) ListKubernetesObjects() ([]KubernetesObject, error) {
-	objs := []KubernetesObject{}
-	decoder := yaml.NewYAMLToJSONDecoder(bytes.NewBufferString(rel.Manifest))
-	for {
-		obj := KubernetesObject{}
-		if err := decoder.Decode(&obj); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, fmt.Errorf("failed to list resources: %w", err)
-		}
-		objs = append(objs, obj)
-	}
-	return objs, nil
-}
-
-// KubernetesObject contains the type and metadata of a Kubernetes object. It's
-// useful for unmarshalling objects regardless of the payloads.
-type KubernetesObject struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+// AsVersioned wraps "helm.sh/helm/v3/pkg/kube".AsVersioned for easier reuse. It converts the given
+// info into a runtime.Object with the correct group and version set.
+func AsVersioned(info *resource.Info) runtime.Object {
+	return kube.AsVersioned(info)
 }

@@ -29,6 +29,7 @@ spec:
   provisioning:
     chart:
       url: https://charts.bitnami.com/bitnami/postgresql-10.1.2.tgz
+      sha256: 7cd502916d521e2c5c2e4601bd052ed55617d8814984380d52efb04af017aed1
     values:
       schema: |
         "$schema": http://json-schema.org/draft-07/schema#
