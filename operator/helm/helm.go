@@ -196,7 +196,7 @@ func (c *client) Get(name string, opts GetOpts) (*release.Release, error) {
 	return rel, nil
 }
 
-// ListResources lists the Kubernetes resources for a given Helm release.
+// ListResources lists the desired state of the Kubernetes resources for a given Helm release.
 func (c *client) ListResources(rel *release.Release, opts ListResourcesOpts) (kube.ResourceList, error) {
 	namespace := opts.Namespace.ValueOrDefault()
 	cfg, err := c.config(namespace)
