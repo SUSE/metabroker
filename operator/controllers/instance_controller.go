@@ -223,6 +223,17 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	ready, err := r.helm.IsReady(rel)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// TODO: update status of Instance.
+
+	if !ready {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 
