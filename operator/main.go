@@ -86,6 +86,9 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
+	helmChartCache := helm.NewChartCache(helmChartCachePath)
+	helmClient := helm.NewClient(helmChartCache)
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
@@ -114,15 +117,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Plan")
 		os.Exit(1)
 	}
-	if err = controllers.NewInstanceReconciler(
+	if err := controllers.NewInstanceReconciler(
+		helmClient,
 		metabrokerName,
 		provisioningPodImage,
 	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Instance")
 		os.Exit(1)
 	}
-	helmChartCache := helm.NewChartCache(helmChartCachePath)
-	helmClient := helm.NewClient(helmChartCache)
 	if err := controllers.NewCredentialReconciler(helmClient).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Credential")
 		os.Exit(1)

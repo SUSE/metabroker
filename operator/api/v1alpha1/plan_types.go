@@ -52,6 +52,8 @@ type PlanProvisioningSpec struct {
 type PlanProvisioningChartSpec struct {
 	// The URL for the Chart tarball.
 	URL string `json:"url"`
+	// The SHA-256 checksum for the Chart tarball.
+	SHA256 string `json:"sha256"`
 }
 
 // PlanProvisioningValuesSpec defines the Values spec for a Provisioning.

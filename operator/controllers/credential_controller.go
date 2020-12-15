@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/SUSE/metabroker/operator/helm"
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	servicebrokerv1alpha1 "github.com/SUSE/metabroker/operator/api/v1alpha1"
+	"github.com/SUSE/metabroker/operator/helm"
 )
 
 // CredentialReconciler implements the Reconcile method for the Credential resource.
@@ -46,13 +46,13 @@ type CredentialReconciler struct {
 
 	log    logr.Logger
 	scheme *runtime.Scheme
-	helm   *helm.Client
+	helm   helm.Client
 
 	resourceCache map[kindWithGroup]metav1.APIResource
 }
 
 // NewCredentialReconciler constructs a new CredentialReconciler.
-func NewCredentialReconciler(helm *helm.Client) *CredentialReconciler {
+func NewCredentialReconciler(helm helm.Client) *CredentialReconciler {
 	return &CredentialReconciler{
 		helm:          helm,
 		resourceCache: make(map[kindWithGroup]metav1.APIResource),
@@ -203,26 +203,26 @@ func (r *CredentialReconciler) runBindingPod(
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	helmReleaseGetOpts := helm.GetOpts{Namespace: helm.NamespaceOpt(req.Namespace)}
 	helmRelease, err := r.helm.Get(
 		instance.HelmRef.Name,
-		helm.GetOpts{Namespace: helm.NamespaceOpt(req.Namespace)},
+		helmReleaseGetOpts,
 	)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to bind: %w", err)
 	}
 
-	helmObjects, err := helmRelease.ListKubernetesObjects()
+	listResourcesOpts := helm.ListResourcesOpts(helmReleaseGetOpts)
+	helmResources, err := r.helm.ListResources(helmRelease, listResourcesOpts)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to bind: %w", err)
 	}
 
-	helmObjectsPolicyRules := make([]rbacv1.PolicyRule, len(helmObjects))
-	for i, obj := range helmObjects {
-		gv, err := schema.ParseGroupVersion(obj.APIVersion)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to bind; could not parse group version for %q: %w", obj.Name, err)
-		}
-		kwg := kindWithGroup{kind: obj.Kind, group: gv.Group}
+	helmObjectsPolicyRules := make([]rbacv1.PolicyRule, len(helmResources))
+	for i, res := range helmResources {
+		obj := helm.AsVersioned(res)
+		gv := obj.GetObjectKind().GroupVersionKind()
+		kwg := kindWithGroup{kind: gv.Kind, group: gv.Group}
 		resource, err := r.resourceForKind(kwg)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to bind; could not find resource for kind %q: %w", kwg, err)
@@ -230,7 +230,7 @@ func (r *CredentialReconciler) runBindingPod(
 		helmObjectsPolicyRules[i] = rbacv1.PolicyRule{
 			APIGroups:     []string{gv.Group},
 			Resources:     []string{resource.Name},
-			ResourceNames: []string{obj.Name},
+			ResourceNames: []string{res.Name},
 			Verbs:         []string{"get"},
 		}
 	}
@@ -328,11 +328,11 @@ func (r *CredentialReconciler) runBindingPod(
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	helmObjectsList := make([]corev1.ObjectReference, len(helmObjects))
-	for i, obj := range helmObjects {
+	helmObjectsList := make([]corev1.ObjectReference, len(helmResources))
+	for i, res := range helmResources {
 		helmObjectsList[i] = corev1.ObjectReference{
-			Name:      obj.Name,
-			Namespace: obj.Namespace,
+			Name:      res.ObjectName(),
+			Namespace: res.Namespace,
 		}
 	}
 
