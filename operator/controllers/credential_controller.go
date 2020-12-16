@@ -62,22 +62,43 @@ func NewCredentialReconciler(helm helm.Client) *CredentialReconciler {
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=credentials,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=credentials/status,verbs=get;update;patch
 
-const credentialReconcileTimeout = time.Second * 10
+const credentialReconcileTimeout = 10 * time.Second
 
 // Reconcile reconciles a Credential resource.
 func (r *CredentialReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), credentialReconcileTimeout)
 	defer cancel()
 
-	_ = r.log.WithValues("credential", req.NamespacedName)
+	log := r.log.WithValues("credential", req.NamespacedName)
 
 	credential := &servicebrokerv1alpha1.Credential{}
 	if err := r.Get(ctx, req.NamespacedName, credential); err != nil {
 		if errors.IsNotFound(err) {
-			// TODO: The credential no longer exists; run any unbinding steps necessary.
+			log.Info("Credential deleted")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	if credential.IsDeleting() {
+		if credential.HasUnbindingFinalizer() {
+			log.Info("Credential being deleted; unbinding...")
+			// TODO: The credential is being deleted; run any unbinding steps necessary.
+
+			credential.RemoveUnbindingFinalizer()
+			if err := r.Update(ctx, credential); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !credential.HasUnbindingFinalizer() {
+		credential.AddUnbindingFinalizer()
+		if err := r.Update(ctx, credential); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	instance := &servicebrokerv1alpha1.Instance{}

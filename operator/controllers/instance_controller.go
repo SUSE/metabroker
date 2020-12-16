@@ -86,17 +86,37 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	instance := &servicebrokerv1alpha1.Instance{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
-			// The instance no longer exists; run any deprovisioning steps necessary.
+			log.Info("Instance deleted")
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	if instance.IsDeleting() {
+		if instance.HasDeprovisioningFinalizer() {
+			log.Info("Instance being deleted; deprovisioning...")
 			uninstallOpts := helm.UninstallOpts{
 				Namespace: helm.NamespaceOpt(releaseReq.Namespace),
 				Timeout:   helmUninstallTimeout,
 			}
-			if err := r.helm.Uninstall(releaseReq.ReleaseName(), uninstallOpts); err != nil {
+			if err := r.helm.Uninstall(instance.HelmRef.Name, uninstallOpts); err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
+
+			instance.RemoveDeprovisioningFinalizer()
+			if err := r.Update(ctx, instance); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
+	}
+
+	if !instance.HasDeprovisioningFinalizer() {
+		instance.AddDeprovisioningFinalizer()
+		if err := r.Update(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	planNamespacedName := req.NamespacedName

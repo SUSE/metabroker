@@ -19,7 +19,11 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/SUSE/metabroker/operator/stringutil"
 )
+
+const credentialUnbindingFinalizer = "unbinding.credentials.servicebroker.metabroker.suse.com"
 
 // +kubebuilder:object:root=true
 
@@ -37,6 +41,30 @@ type Credential struct {
 	SecretRef corev1.LocalObjectReference `json:"secretRef"`
 	// The observed state of the Credential.
 	Status CredentialStatus `json:"status,omitempty"`
+}
+
+// IsDeleting returns whether the Credential was marked for deletion but was not deleted yet. This
+// is useful for checking when finalizers are present.
+func (credential *Credential) IsDeleting() bool {
+	return !credential.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
+// HasUnbindingFinalizer returns whether the Credential has the unbinding finalizer.
+func (credential *Credential) HasUnbindingFinalizer() bool {
+	return stringutil.Contains(credential.ObjectMeta.Finalizers, credentialUnbindingFinalizer)
+}
+
+// AddUnbindingFinalizer appends the unbinding finalizer to the Credential finalizers.
+func (credential *Credential) AddUnbindingFinalizer() {
+	credential.ObjectMeta.Finalizers = append(credential.ObjectMeta.Finalizers, credentialUnbindingFinalizer)
+}
+
+// RemoveUnbindingFinalizer removes the unbinding finalizer from the Credential finalizers.
+func (credential *Credential) RemoveUnbindingFinalizer() {
+	credential.ObjectMeta.Finalizers = stringutil.Remove(
+		credential.ObjectMeta.Finalizers,
+		credentialUnbindingFinalizer,
+	)
 }
 
 // +kubebuilder:object:root=true
