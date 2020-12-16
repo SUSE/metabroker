@@ -238,7 +238,20 @@ func (c *client) IsReady(rel *release.Release) (bool, error) {
 
 	go func() { ch <- cfg.KubeClient.Wait(objs, 5*time.Minute) }()
 
-	return false, nil
+	select {
+	case err := <-ch:
+		close(ch)
+		delete(c.readyReleases, nsName)
+		if err != nil {
+			return false, fmt.Errorf("failed to determine whether the Helm release %q is ready or not: %w", rel.Name, err)
+		}
+		return true, nil
+	// If the Wait method was just invoked, we give a chance for it to complete in less than 5
+	// seconds for the first time instead of returning not ready right away. This is useful for
+	// reconciliation loops that need to frequently check whether the Helm release is ready or not.
+	case <-time.After(5 * time.Second):
+		return false, nil
+	}
 }
 
 func (c *client) config(namespace string) (*action.Configuration, error) {
