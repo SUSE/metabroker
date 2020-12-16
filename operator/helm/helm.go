@@ -202,7 +202,9 @@ func (c *client) ListResources(rel *release.Release) (kube.ResourceList, error) 
 	return current, nil
 }
 
-// IsReady determines whether a Helm installation is ready or not.
+// IsReady determines whether a Helm installation is ready or not. This method blocks for up to 5
+// seconds when the background helm.Wait blocking method is not running yet, giving it a chance to
+// return on the first call whether the release is ready or not instead of just returning false.
 func (c *client) IsReady(rel *release.Release) (bool, error) {
 	nsName := namespacedName{
 		name:      rel.Name,
