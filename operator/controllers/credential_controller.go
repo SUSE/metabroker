@@ -37,7 +37,6 @@ import (
 
 	servicebrokerv1alpha1 "github.com/SUSE/metabroker/operator/api/v1alpha1"
 	"github.com/SUSE/metabroker/operator/helm"
-	"github.com/SUSE/metabroker/operator/stringutil"
 )
 
 // CredentialReconciler implements the Reconcile method for the Credential resource.
@@ -63,10 +62,7 @@ func NewCredentialReconciler(helm helm.Client) *CredentialReconciler {
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=credentials,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=credentials/status,verbs=get;update;patch
 
-const (
-	credentialReconcileTimeout   = 10 * time.Second
-	credentialUnbindingFinalizer = "unbinding.credentials.servicebroker.metabroker.suse.com"
-)
+const credentialReconcileTimeout = 10 * time.Second
 
 // Reconcile reconciles a Credential resource.
 func (r *CredentialReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -84,16 +80,12 @@ func (r *CredentialReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, err
 	}
 
-	// The Credential is set for deletion, pending finalizers.
-	if !credential.ObjectMeta.DeletionTimestamp.IsZero() {
-		if stringutil.Contains(credential.ObjectMeta.Finalizers, credentialUnbindingFinalizer) {
+	if credential.IsDeleting() {
+		if credential.HasUnbindingFinalizer() {
 			log.Info("Credential being deleted; unbinding...")
 			// TODO: The credential is being deleted; run any unbinding steps necessary.
 
-			credential.ObjectMeta.Finalizers = stringutil.Remove(
-				credential.ObjectMeta.Finalizers,
-				credentialUnbindingFinalizer,
-			)
+			credential.RemoveUnbindingFinalizer()
 			if err := r.Update(ctx, credential); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -101,12 +93,12 @@ func (r *CredentialReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, nil
 	}
 
-	// Add finalizer.
-	if !stringutil.Contains(credential.ObjectMeta.Finalizers, credentialUnbindingFinalizer) {
-		credential.ObjectMeta.Finalizers = append(credential.ObjectMeta.Finalizers, credentialUnbindingFinalizer)
+	if !credential.HasUnbindingFinalizer() {
+		credential.AddUnbindingFinalizer()
 		if err := r.Update(ctx, credential); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
 
 	instance := &servicebrokerv1alpha1.Instance{}

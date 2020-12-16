@@ -19,7 +19,11 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/SUSE/metabroker/operator/stringutil"
 )
+
+const instanceDeprovisioningFinalizer = "deprovisioning.instances.servicebroker.metabroker.suse.com"
 
 // InstanceSpec defines the Service Instance spec.
 type InstanceSpec struct {
@@ -59,6 +63,30 @@ type Instance struct {
 	// +optional
 	HelmValuesRef corev1.LocalObjectReference `json:"helmValuesRef,omitempty"`
 	Status        InstanceStatus              `json:"status,omitempty"`
+}
+
+// IsDeleting returns whether the Instance was marked for deletion but was not deleted yet. This
+// is useful for checking when finalizers are present.
+func (instance *Instance) IsDeleting() bool {
+	return !instance.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
+// HasDeprovisioningFinalizer returns whether the Instance has the deprovisioning finalizer.
+func (instance *Instance) HasDeprovisioningFinalizer() bool {
+	return stringutil.Contains(instance.ObjectMeta.Finalizers, instanceDeprovisioningFinalizer)
+}
+
+// AddDeprovisioningFinalizer appends the deprovisioning finalizer to the Instance finalizers.
+func (instance *Instance) AddDeprovisioningFinalizer() {
+	instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, instanceDeprovisioningFinalizer)
+}
+
+// RemoveDeprovisioningFinalizer removes the deprovisioning finalizer from the Instance finalizers.
+func (instance *Instance) RemoveDeprovisioningFinalizer() {
+	instance.ObjectMeta.Finalizers = stringutil.Remove(
+		instance.ObjectMeta.Finalizers,
+		instanceDeprovisioningFinalizer,
+	)
 }
 
 // +kubebuilder:object:root=true

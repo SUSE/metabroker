@@ -39,7 +39,6 @@ import (
 
 	servicebrokerv1alpha1 "github.com/SUSE/metabroker/operator/api/v1alpha1"
 	"github.com/SUSE/metabroker/operator/helm"
-	"github.com/SUSE/metabroker/operator/stringutil"
 )
 
 // InstanceReconciler implements the Reconcile method for the Instance resource.
@@ -70,10 +69,9 @@ func NewInstanceReconciler(
 // +kubebuilder:rbac:groups=servicebroker.metabroker.suse.com,resources=instances/status,verbs=get;update;patch
 
 const (
-	instanceReconcileTimeout        = 30 * time.Second
-	instanceDeprovisioningFinalizer = "deprovisioning.instances.servicebroker.metabroker.suse.com"
-	helmInstallTimeout              = 5 * time.Minute
-	helmUninstallTimeout            = 3 * time.Minute
+	instanceReconcileTimeout = 30 * time.Second
+	helmInstallTimeout       = 5 * time.Minute
+	helmUninstallTimeout     = 3 * time.Minute
 )
 
 // Reconcile reconciles an Instance resource.
@@ -94,9 +92,8 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	// The Instance is set for deletion, pending finalizers.
-	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		if stringutil.Contains(instance.ObjectMeta.Finalizers, instanceDeprovisioningFinalizer) {
+	if instance.IsDeleting() {
+		if instance.HasDeprovisioningFinalizer() {
 			log.Info("Instance being deleted; deprovisioning...")
 			uninstallOpts := helm.UninstallOpts{
 				Namespace: helm.NamespaceOpt(releaseReq.Namespace),
@@ -106,10 +103,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				return ctrl.Result{}, err
 			}
 
-			instance.ObjectMeta.Finalizers = stringutil.Remove(
-				instance.ObjectMeta.Finalizers,
-				instanceDeprovisioningFinalizer,
-			)
+			instance.RemoveDeprovisioningFinalizer()
 			if err := r.Update(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -117,12 +111,12 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	// Add finalizer.
-	if !stringutil.Contains(instance.ObjectMeta.Finalizers, instanceDeprovisioningFinalizer) {
-		instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, instanceDeprovisioningFinalizer)
+	if !instance.HasDeprovisioningFinalizer() {
+		instance.AddDeprovisioningFinalizer()
 		if err := r.Update(ctx, instance); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
 
 	planNamespacedName := req.NamespacedName
