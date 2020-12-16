@@ -1,6 +1,6 @@
 package stringutil
 
-// Contains returns whether the string `s` is contained in `slice`.
+// Contains returns whether `slice` contains the string `s` or not.
 func Contains(slice []string, s string) bool {
 	for _, item := range slice {
 		if item == s {
@@ -10,7 +10,7 @@ func Contains(slice []string, s string) bool {
 	return false
 }
 
-// Remove returns a new slice with `s` removed from `slice`.
+// Remove returns a new slice with the first match of `s` removed from `slice`.
 func Remove(slice []string, s string) []string {
 	for i, item := range slice {
 		if item == s {
