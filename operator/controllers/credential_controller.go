@@ -233,8 +233,7 @@ func (r *CredentialReconciler) runBindingPod(
 		return ctrl.Result{}, fmt.Errorf("failed to bind: %w", err)
 	}
 
-	listResourcesOpts := helm.ListResourcesOpts(helmReleaseGetOpts)
-	helmResources, err := r.helm.ListResources(helmRelease, listResourcesOpts)
+	helmResources, err := r.helm.ListResources(helmRelease)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to bind: %w", err)
 	}

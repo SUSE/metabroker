@@ -56,7 +56,8 @@ type Client interface {
 	Install(name string, chartInfo ChartInfo, opts InstallOpts) (*release.Release, error)
 	Uninstall(name string, opts UninstallOpts) error
 	Get(name string, opts GetOpts) (*release.Release, error)
-	ListResources(rel *release.Release, opts ListResourcesOpts) (kube.ResourceList, error)
+	ListResources(rel *release.Release) (kube.ResourceList, error)
+	IsReady(rel *release.Release) (bool, error)
 }
 
 // ChartInfo contains information necessary to identify a helm chart archive for installation.
@@ -99,24 +100,16 @@ type GetOpts struct {
 	Namespace NamespaceOpt
 }
 
-// ListResourcesOpts are the required options for listing the resources of a Helm installation.
-type ListResourcesOpts struct {
-	Namespace NamespaceOpt
-}
-
-// IsReadyOpts are the required options for determining whether a Helm installation is ready or not.
-type IsReadyOpts struct {
-	Namespace NamespaceOpt
-}
-
 type client struct {
-	chartCache *ChartCache
+	chartCache    *ChartCache
+	readyReleases map[namespacedName](chan error)
 }
 
 // NewClient constructs a new Client.
 func NewClient(chartCache *ChartCache) Client {
 	return &client{
-		chartCache: chartCache,
+		chartCache:    chartCache,
+		readyReleases: make(map[namespacedName](chan error)),
 	}
 }
 
@@ -197,9 +190,8 @@ func (c *client) Get(name string, opts GetOpts) (*release.Release, error) {
 }
 
 // ListResources lists the desired state of the Kubernetes resources for a given Helm release.
-func (c *client) ListResources(rel *release.Release, opts ListResourcesOpts) (kube.ResourceList, error) {
-	namespace := opts.Namespace.ValueOrDefault()
-	cfg, err := c.config(namespace)
+func (c *client) ListResources(rel *release.Release) (kube.ResourceList, error) {
+	cfg, err := c.config(rel.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list resources for Helm release %q: %w", rel.Name, err)
 	}
@@ -208,6 +200,60 @@ func (c *client) ListResources(rel *release.Release, opts ListResourcesOpts) (ku
 		return nil, fmt.Errorf("failed to list resources for Helm release %q: %w", rel.Name, err)
 	}
 	return current, nil
+}
+
+// IsReady determines whether a Helm installation is ready or not. This method blocks for up to 5
+// seconds when the background helm.Wait blocking method is not running yet, giving it a chance to
+// return on the first call whether the release is ready or not instead of just returning false.
+func (c *client) IsReady(rel *release.Release) (bool, error) {
+	nsName := namespacedName{
+		name:      rel.Name,
+		namespace: rel.Namespace,
+	}
+	ch, ok := c.readyReleases[nsName]
+	if ok {
+		select {
+		case err := <-ch:
+			close(ch)
+			delete(c.readyReleases, nsName)
+			if err != nil {
+				return false, fmt.Errorf("failed to determine whether the Helm release %q is ready or not: %w", rel.Name, err)
+			}
+			return true, nil
+		default:
+			return false, nil
+		}
+	}
+
+	objs, err := c.ListResources(rel)
+	if err != nil {
+		return false, fmt.Errorf("failed to determine whether the Helm release %q is ready or not: %w", rel.Name, err)
+	}
+
+	cfg, err := c.config(rel.Namespace)
+	if err != nil {
+		return false, fmt.Errorf("failed to determine whether the Helm release %q is ready or not: %w", rel.Name, err)
+	}
+
+	ch = make(chan error, 1)
+	c.readyReleases[nsName] = ch
+
+	go func() { ch <- cfg.KubeClient.Wait(objs, 5*time.Minute) }()
+
+	select {
+	case err := <-ch:
+		close(ch)
+		delete(c.readyReleases, nsName)
+		if err != nil {
+			return false, fmt.Errorf("failed to determine whether the Helm release %q is ready or not: %w", rel.Name, err)
+		}
+		return true, nil
+	// If the Wait method was just invoked, we give a chance for it to complete in less than 5
+	// seconds for the first time instead of returning not ready right away. This is useful for
+	// reconciliation loops that need to frequently check whether the Helm release is ready or not.
+	case <-time.After(5 * time.Second):
+		return false, nil
+	}
 }
 
 func (c *client) config(namespace string) (*action.Configuration, error) {
@@ -329,4 +375,8 @@ func fanout(r io.Reader, ws ...io.Writer) (written int64, err error) {
 // info into a runtime.Object with the correct group and version set.
 func AsVersioned(info *resource.Info) runtime.Object {
 	return kube.AsVersioned(info)
+}
+
+type namespacedName struct {
+	name, namespace string
 }
