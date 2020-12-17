@@ -1,4 +1,4 @@
-module github.com/SUSE/metabroker/operator/helm
+module github.com/SUSE/metabroker/helm
 
 go 1.14
 
