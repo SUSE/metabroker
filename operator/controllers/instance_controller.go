@@ -75,8 +75,8 @@ const (
 )
 
 // Reconcile reconciles an Instance resource.
-func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), instanceReconcileTimeout)
+func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithTimeout(ctx, instanceReconcileTimeout)
 	defer cancel()
 
 	log := r.log.WithValues("instance", req.NamespacedName)

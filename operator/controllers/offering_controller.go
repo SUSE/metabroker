@@ -43,8 +43,8 @@ type OfferingReconciler struct {
 const offeringReconcileTimeout = time.Second * 10
 
 // Reconcile reconciles an Offering resource.
-func (r *OfferingReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), offeringReconcileTimeout)
+func (r *OfferingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithTimeout(ctx, offeringReconcileTimeout)
 	defer cancel()
 
 	log := r.Log.WithValues("offering", req.NamespacedName)
