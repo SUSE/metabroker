@@ -43,8 +43,8 @@ type PlanReconciler struct {
 const planReconcileTimeout = time.Second * 10
 
 // Reconcile reconciles a Plan resource.
-func (r *PlanReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), planReconcileTimeout)
+func (r *PlanReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithTimeout(ctx, planReconcileTimeout)
 	defer cancel()
 
 	log := r.Log.WithValues("plan", req.NamespacedName)

@@ -65,8 +65,8 @@ func NewCredentialReconciler(helm helm.Client) *CredentialReconciler {
 const credentialReconcileTimeout = 10 * time.Second
 
 // Reconcile reconciles a Credential resource.
-func (r *CredentialReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), credentialReconcileTimeout)
+func (r *CredentialReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithTimeout(ctx, credentialReconcileTimeout)
 	defer cancel()
 
 	log := r.log.WithValues("credential", req.NamespacedName)
