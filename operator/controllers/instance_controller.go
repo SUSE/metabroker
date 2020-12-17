@@ -37,8 +37,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	servicebrokerv1alpha1 "github.com/SUSE/metabroker/operator/api/v1alpha1"
-	"github.com/SUSE/metabroker/operator/helm"
+	servicebrokerv1alpha1 "github.com/SUSE/metabroker/api/v1alpha1"
+	"github.com/SUSE/metabroker/helm"
 )
 
 // InstanceReconciler implements the Reconcile method for the Instance resource.
@@ -202,7 +202,7 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	releaseValues, err := yaml.Marshal(mergeMaps(rel.Chart.Values, rel.Config))
+	releaseValues, err := yaml.Marshal(helm.MergeMaps(rel.Chart.Values, rel.Config))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -318,9 +318,9 @@ func mergeValues(
 		return nil, fmt.Errorf("failed to unmarshal static plan values: %w", err)
 	}
 	values := make(map[string]interface{})
-	values = mergeMaps(values, defaultValues)
-	values = mergeMaps(values, userValues)
-	values = mergeMaps(values, staticValues)
+	values = helm.MergeMaps(values, defaultValues)
+	values = helm.MergeMaps(values, userValues)
+	values = helm.MergeMaps(values, staticValues)
 	return values, nil
 }
 

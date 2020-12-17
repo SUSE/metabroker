@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package helm
 
-// mergeMaps was copied from the Helm source. Refer to the original code:
+// MergeMaps was copied from the Helm source. Refer to the original code:
 // https://github.com/helm/helm/blob/6297c021cbda1483d8c08a8ec6f4a99e38be7302/pkg/cli/values/options.go#L88
 // Any eventual changes to the original function must be documented accordingly.
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(a))
 	for k, v := range a {
 		out[k] = v
@@ -28,7 +28,7 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 		if v, ok := v.(map[string]interface{}); ok {
 			if bv, ok := out[k]; ok {
 				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = mergeMaps(bv, v)
+					out[k] = MergeMaps(bv, v)
 					continue
 				}
 			}

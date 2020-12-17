@@ -27,7 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	servicebrokerv1alpha1 "github.com/SUSE/metabroker/operator/api/v1alpha1"
+	servicebrokerv1alpha1 "github.com/SUSE/metabroker/api/v1alpha1"
 )
 
 // PlanReconciler implements the Reconcile method for the Plan resource.
