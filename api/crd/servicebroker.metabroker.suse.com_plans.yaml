@@ -22,14 +22,10 @@ spec:
         description: Plan is the top-level Schema for the Plan resource API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -37,28 +33,13 @@ spec:
             description: The specification of the desired behaviour of the Plan.
             properties:
               binding:
-                description: The specification for how an Instance of the Plan should
-                  be bound.
+                description: The specification for how an Instance of the Plan should be bound.
                 properties:
                   credentials:
-                    description: The specification of the desired behaviour of the
-                      binding credentials.
+                    description: The specification of the desired behaviour of the binding credentials.
                     properties:
                       runContainer:
-                        description: 'The container specification for the logic of
-                          binding an Instance of the Plan. Instance specifics are
-                          passed to the container process via environment variables
-                          and mounted files. Environment variables:   - METABROKER_INSTANCE_NAME:
-                          the name of the Instance being bound.   - METABROKER_INSTANCE_HELM_NAME:
-                          the generated name for the Instance Helm installation.   -
-                          METABROKER_CREDENTIAL_NAME: the name of the Credential that
-                          triggered the binding.   - METABROKER_VALUES_FILE: a path
-                          to the values YAML file used in the Instance Helm       installation.   -
-                          METABROKER_HELM_OBJECTS_LIST_FILE: a path to the file containing
-                          a list of all recources       directly created by the provisioning
-                          Helm installation.   - METABROKER_OUTPUT: the name of the
-                          Kubernetes object to be patched to output the       generated
-                          credentials in the format "secret/<name>".'
+                        description: 'The container specification for the logic of binding an Instance of the Plan. Instance specifics are passed to the container process via environment variables and mounted files. Environment variables:   - METABROKER_INSTANCE_NAME: the name of the Instance being bound.   - METABROKER_INSTANCE_HELM_NAME: the generated name for the Instance Helm installation.   - METABROKER_CREDENTIAL_NAME: the name of the Credential that triggered the binding.   - METABROKER_VALUES_FILE: a path to the values YAML file used in the Instance Helm       installation.   - METABROKER_HELM_OBJECTS_LIST_FILE: a path to the file containing a list of all recources       directly created by the provisioning Helm installation.   - METABROKER_OUTPUT: the name of the Kubernetes object to be patched to output the       generated credentials in the format "secret/<name>".'
                         properties:
                           args:
                             description: The arguments passed to the entrypoint command.
@@ -86,19 +67,16 @@ spec:
                 description: A description for the Plan.
                 type: string
               id:
-                description: A unique ID for the Plan to be used by OSBAPI. If not
-                  provided, a UUID v1 is auto-generated.
+                description: A unique ID for the Plan to be used by OSBAPI. If not provided, a UUID v1 is auto-generated.
                 type: string
               offering:
                 description: The name of the Offering this Plan belongs to.
                 type: string
               provisioning:
-                description: The specification for how an Instance of the Plan should
-                  be provisioned.
+                description: The specification for how an Instance of the Plan should be provisioned.
                 properties:
                   chart:
-                    description: Chart contains what chart to be used to provision
-                      an Instance of the Plan.
+                    description: Chart contains what chart to be used to provision an Instance of the Plan.
                     properties:
                       sha256:
                         description: The SHA-256 checksum for the Chart tarball.
@@ -111,24 +89,16 @@ spec:
                     - url
                     type: object
                   values:
-                    description: Values contains the configuration for validating
-                      user-provided provisioning properties as well as plan-specific
-                      default values and overrides.
+                    description: Values contains the configuration for validating user-provided provisioning properties as well as plan-specific default values and overrides.
                     properties:
                       default:
-                        description: The default values used to override the Chart
-                          defaults. The user-provided values can still override these
-                          values.
+                        description: The default values used to override the Chart defaults. The user-provided values can still override these values.
                         type: string
                       schema:
-                        description: The JSON schema for validating user-provided
-                          properties that are passed to the Helm client as values
-                          for installing a Chart. The schema definition can be written
-                          as YAML or JSON.
+                        description: The JSON schema for validating user-provided properties that are passed to the Helm client as values for installing a Chart. The schema definition can be written as YAML or JSON.
                         type: string
                       static:
-                        description: The static values applied on top of all other
-                          values used to enforce plan-specific configuration.
+                        description: The static values applied on top of all other values used to enforce plan-specific configuration.
                         type: string
                     required:
                     - schema
