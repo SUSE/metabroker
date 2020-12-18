@@ -6,8 +6,7 @@ IMG ?= operator:latest
 all: operator
 
 install-tools:
-	@export GOBIN=$(makefile_dir)/.bin; \
-		cat tools.go | grep _ | tr -d '[:space:]_"' | xargs go install
+	@grep _ tools.go | tr -d '[:space:]_"' | env GOBIN=$(makefile_dir)/.bin xargs go install
 
 generate: generate-rbac generate-webhook
 
