@@ -20,11 +20,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/SUSE/metabroker/api/stringutil"
+	"github.com/SUSE/metabroker/apis/stringutil"
 )
 
 const credentialUnbindingFinalizer = "unbinding.credentials.servicebroker.metabroker.suse.com"
 
+// +genclient
 // +kubebuilder:object:root=true
 
 // Credential is the top-level Schema for the Credential resource API.

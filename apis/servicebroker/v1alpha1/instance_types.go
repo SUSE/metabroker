@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/SUSE/metabroker/api/stringutil"
+	"github.com/SUSE/metabroker/apis/stringutil"
 )
 
 const instanceDeprovisioningFinalizer = "deprovisioning.instances.servicebroker.metabroker.suse.com"
@@ -39,6 +39,8 @@ type InstanceSpec struct {
 	// created via Metabroker's OSBAPI, this should be omitted as the OSBAPI implementation already
 	// performs this validation. If omitted, this field defaults to true.
 	// +optional
+	// TODO: remove this in favour of enforcing the validation to always occur. This eliminates the
+	// security problem of exposing the Instance CRD to non-platform operators.
 	ValidateValues *bool `json:"validateValues,omitempty"`
 }
 
@@ -47,6 +49,7 @@ type InstanceStatus struct {
 	// TODO: implement.
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 
 // Instance is the top-level Schema for the Instance resource API.

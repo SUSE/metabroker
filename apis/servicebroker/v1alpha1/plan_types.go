@@ -31,8 +31,14 @@ type PlanSpec struct {
 	// +optional
 	Description string `json:"description,omitempty"`
 	// The specification for how an Instance of the Plan should be provisioned.
+	// TODO: pull the Provisioning out into its own CRD, so plans can safely be listed by
+	// non-platform operators. Also, add a comment to the PlanSpec for future reference what
+	// can/cannot be added to the spec.
 	Provisioning PlanProvisioningSpec `json:"provisioning"`
 	// The specification for how an Instance of the Plan should be bound.
+	// TODO: pull the Binding out into its own CRD, so plans can safely be listed by
+	// non-platform operators. Also, add a comment to the PlanSpec for future reference what
+	// can/cannot be added to the spec.
 	Binding PlanBindingSpec `json:"binding"`
 }
 
@@ -111,6 +117,7 @@ type PlanStatus struct {
 	// TODO: implement.
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 
 // Plan is the top-level Schema for the Plan resource API.

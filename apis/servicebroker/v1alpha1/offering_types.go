@@ -38,6 +38,7 @@ type OfferingStatus struct {
 	// TODO: implement.
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 
 // Offering is the top-level Schema for the Offering resource API.

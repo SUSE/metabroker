@@ -33,7 +33,7 @@ spec:
             description: The specification of the desired behaviour of the Plan.
             properties:
               binding:
-                description: The specification for how an Instance of the Plan should be bound.
+                description: 'The specification for how an Instance of the Plan should be bound. TODO: pull the Binding out into its own CRD, so plans can safely be listed by non-platform operators. Also, add a comment to the PlanSpec for future reference what can/cannot be added to the spec.'
                 properties:
                   credentials:
                     description: The specification of the desired behaviour of the binding credentials.
@@ -73,7 +73,7 @@ spec:
                 description: The name of the Offering this Plan belongs to.
                 type: string
               provisioning:
-                description: The specification for how an Instance of the Plan should be provisioned.
+                description: 'The specification for how an Instance of the Plan should be provisioned. TODO: pull the Provisioning out into its own CRD, so plans can safely be listed by non-platform operators. Also, add a comment to the PlanSpec for future reference what can/cannot be added to the spec.'
                 properties:
                   chart:
                     description: Chart contains what chart to be used to provision an Instance of the Plan.

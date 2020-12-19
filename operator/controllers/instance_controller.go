@@ -37,7 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	servicebrokerv1alpha1 "github.com/SUSE/metabroker/api/v1alpha1"
+	servicebrokerv1alpha1 "github.com/SUSE/metabroker/apis/servicebroker/v1alpha1"
 	"github.com/SUSE/metabroker/helm"
 )
 

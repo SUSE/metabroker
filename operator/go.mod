@@ -3,7 +3,7 @@ module github.com/SUSE/metabroker/operator
 go 1.14
 
 require (
-	github.com/SUSE/metabroker/api v0.0.0-00010101000000-000000000000
+	github.com/SUSE/metabroker/apis v0.0.0-00010101000000-000000000000
 	github.com/SUSE/metabroker/helm v0.0.0-00010101000000-000000000000
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.3.0
@@ -20,6 +20,6 @@ require (
 )
 
 replace (
-	github.com/SUSE/metabroker/api => ../api
+	github.com/SUSE/metabroker/apis => ../apis
 	github.com/SUSE/metabroker/helm => ../helm
 )
