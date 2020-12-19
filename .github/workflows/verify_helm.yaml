@@ -1,0 +1,43 @@
+name: Verify helm
+on:
+  pull_request:
+    branches:
+    - main
+    - prototype
+  workflow_dispatch: {}
+jobs:
+  verify:
+    name: Generated code
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ~1
+    - name: go mod tidy
+      working-directory: ./helm
+      run: |
+        go mod tidy
+        git update-index --refresh
+        if ! git diff-index --quiet HEAD --; then
+          >&2 echo "Files changed by 'go mod tidy' should be committed"
+          exit 1
+        fi
+    - name: fmt
+      working-directory: ./helm
+      run: |
+        make fmt
+        git update-index --refresh
+        if ! git diff-index --quiet HEAD --; then
+          >&2 echo "Files changed by 'make fmt' should be committed"
+          exit 1
+        fi
+    - name: vet
+      working-directory: ./helm
+      run: make vet

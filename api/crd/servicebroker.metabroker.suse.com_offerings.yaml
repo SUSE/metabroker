@@ -22,14 +22,10 @@ spec:
         description: Offering is the top-level Schema for the Offering resource API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -37,15 +33,13 @@ spec:
             description: The specification of the desired behaviour of the Offering.
             properties:
               bindable:
-                description: Whether the Plans linked to this Offering are bindable
-                  or not.
+                description: Whether the Plans linked to this Offering are bindable or not.
                 type: boolean
               description:
                 description: A description for the Offering.
                 type: string
               id:
-                description: A unique ID for the Plan to be used by OSBAPI. If not
-                  provided, a UUID v1 is auto-generated.
+                description: A unique ID for the Plan to be used by OSBAPI. If not provided, a UUID v1 is auto-generated.
                 type: string
             type: object
           status:

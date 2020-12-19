@@ -1,72 +1,38 @@
+makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+makefile_dir := $(patsubst %/,%,$(dir $(makefile_path)))
 
-# Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= operator:latest
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
+all: operator
 
-all: manager
+install-tools:
+	@grep _ tools.go | tr -d '[:space:]_"' | env GOBIN=$(makefile_dir)/.bin xargs go install
 
-# Run tests
-test: generate fmt vet manifests
+generate: generate-rbac generate-webhook
+
+generate-rbac: install-tools
+	$(makefile_dir)/.bin/controller-gen rbac:roleName=manager-role paths="./..."
+
+generate-webhook: install-tools
+	$(makefile_dir)/.bin/controller-gen webhook paths="./..."
+
+test: generate fmt vet
 	go test ./... -coverprofile cover.out
 
-# Build manager binary
-manager: generate fmt vet
-	go build -o bin/manager main.go
+operator: generate fmt vet
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o "$(makefile_dir)/.bin/operator" main.go
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
+run: generate fmt vet
 	go run ./main.go
 
-# Install CRDs into a cluster
-install: manifests
-	kustomize build config/crd | kubectl apply -f -
-
-# Uninstall CRDs from a cluster
-uninstall: manifests
-	kustomize build config/crd | kubectl delete -f -
-
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default | kubectl apply -f -
-
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: $(GOBIN)/controller-gen
-	$(GOBIN)/controller-gen crd rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
-# Run go fmt against code
 fmt:
 	go fmt ./...
 
-# Run go vet against code
 vet:
 	go vet ./...
 
-# Generate code
-generate: $(GOBIN)/controller-gen
-	$(GOBIN)/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
-# Build the docker image
 docker-build: test
 	docker build . -t ${IMG}
 
-# Push the docker image
 docker-push:
 	docker push ${IMG}
-
-# Build controller-gen
-$(GOBIN)/controller-gen:
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
