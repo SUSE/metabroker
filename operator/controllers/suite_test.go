@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	servicebrokerv1alpha1 "github.com/SUSE/metabroker/api/v1alpha1"
+	servicebrokerv1alpha1 "github.com/SUSE/metabroker/apis/servicebroker/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
