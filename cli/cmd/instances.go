@@ -42,7 +42,7 @@ func NewInstancesCmd(
 	stdout io.Writer,
 ) *cobra.Command {
 	var namespace string
-	var timeout string
+	var timeout time.Duration
 	var noHeaders bool
 
 	cmd := &cobra.Command{
@@ -62,12 +62,7 @@ func NewInstancesCmd(
 				return fmt.Errorf("failed to get instances: %w", err)
 			}
 
-			timeoutDuration, err := time.ParseDuration(timeout)
-			if err != nil {
-				return fmt.Errorf("failed to get instances: %w", err)
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 
 			instances, err := clientset.
@@ -99,7 +94,7 @@ func NewInstancesCmd(
 	}
 
 	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instances to be listed were created.")
-	cmd.LocalFlags().StringVar(&timeout, "timeout", "10s", "The time to wait for the Instances to be listed.")
+	cmd.LocalFlags().DurationVar(&timeout, "timeout", time.Second*10, "The time to wait for the Instances to be listed.")
 	cmd.LocalFlags().BoolVar(&noHeaders, "no-headers", false, "Don't print headers (default print headers).")
 
 	return cmd

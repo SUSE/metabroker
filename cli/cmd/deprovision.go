@@ -41,7 +41,7 @@ func NewDeprovisionCmd(
 	stdout io.Writer,
 ) *cobra.Command {
 	var namespace string
-	var timeout string
+	var timeout time.Duration
 
 	cmd := &cobra.Command{
 		Use:  "deprovision [INSTANCE NAME]",
@@ -61,12 +61,7 @@ func NewDeprovisionCmd(
 				return fmt.Errorf("failed to deprovision: %w", err)
 			}
 
-			timeoutDuration, err := time.ParseDuration(timeout)
-			if err != nil {
-				return fmt.Errorf("failed to deprovision: %w", err)
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 
 			err = clientset.
@@ -88,7 +83,7 @@ func NewDeprovisionCmd(
 	}
 
 	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instance will be deleted.")
-	cmd.LocalFlags().StringVar(&timeout, "timeout", "1m0s", "The time to wait for the Instance to be deleted.")
+	cmd.LocalFlags().DurationVar(&timeout, "timeout", time.Minute, "The time to wait for the Instance to be deleted.")
 
 	return cmd
 }

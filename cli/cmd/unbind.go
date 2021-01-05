@@ -41,7 +41,7 @@ func NewUnbindCmd(
 	stdout io.Writer,
 ) *cobra.Command {
 	var namespace string
-	var timeout string
+	var timeout time.Duration
 
 	cmd := &cobra.Command{
 		Use:  "unbind [CREDENTIAL NAME]",
@@ -61,12 +61,7 @@ func NewUnbindCmd(
 				return fmt.Errorf("failed to unbind: %w", err)
 			}
 
-			timeoutDuration, err := time.ParseDuration(timeout)
-			if err != nil {
-				return fmt.Errorf("failed to unbind: %w", err)
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 
 			credential, err := clientset.
@@ -98,7 +93,7 @@ func NewUnbindCmd(
 	}
 
 	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Credential will be deleted.")
-	cmd.LocalFlags().StringVar(&timeout, "timeout", "3m0s", "The time to wait for the Credential to be deleted.")
+	cmd.LocalFlags().DurationVar(&timeout, "timeout", time.Minute*3, "The time to wait for the Credential to be deleted.")
 
 	return cmd
 }

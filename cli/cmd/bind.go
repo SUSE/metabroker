@@ -45,7 +45,7 @@ func NewBindCmd(
 	var credentialNamespace string
 	var instanceNamespace string
 	var secretName string
-	var timeout string
+	var timeout time.Duration
 
 	cmd := &cobra.Command{
 		Use:  "bind [INSTANCE NAME] [CREDENTIAL NAME]",
@@ -84,12 +84,7 @@ func NewBindCmd(
 				},
 			}
 
-			timeoutDuration, err := time.ParseDuration(timeout)
-			if err != nil {
-				return fmt.Errorf("failed to bind: %w", err)
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 
 			_, err = clientset.
@@ -113,7 +108,7 @@ func NewBindCmd(
 	cmd.LocalFlags().StringVarP(&credentialNamespace, "namespace", "n", "default", "The target namespace where the Credential will be created.")
 	cmd.LocalFlags().StringVar(&instanceNamespace, "instance-namespace", "default", "The target namespace where the Instance was created.")
 	cmd.LocalFlags().StringVar(&secretName, "secret-name", "", "The secret name where the credentials should be created. The secret must not exist. If empty, a secret with the Credential name is created.")
-	cmd.LocalFlags().StringVar(&timeout, "timeout", "3m0s", "The time to wait for the Credential to be created.")
+	cmd.LocalFlags().DurationVar(&timeout, "timeout", time.Minute*3, "The time to wait for the Credential to be created.")
 
 	return cmd
 }

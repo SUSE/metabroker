@@ -46,7 +46,7 @@ func NewProvisionCmd(
 ) *cobra.Command {
 	var namespace string
 	var values []string
-	var timeout string
+	var timeout time.Duration
 
 	cmd := &cobra.Command{
 		Use:  "provision [INSTANCE NAME] [PLAN NAME]",
@@ -108,12 +108,7 @@ func NewProvisionCmd(
 				},
 			}
 
-			timeoutDuration, err := time.ParseDuration(timeout)
-			if err != nil {
-				return fmt.Errorf("failed to provision: %w", err)
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 
 			_, err = clientset.
@@ -136,7 +131,7 @@ func NewProvisionCmd(
 
 	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instance will be created.")
 	cmd.LocalFlags().StringSliceVarP(&values, "values", "f", []string{}, "(repeated) The values YAML files to be used for provisioning.")
-	cmd.LocalFlags().StringVar(&timeout, "timeout", "5m0s", "The time to wait for the Instance to be created.")
+	cmd.LocalFlags().DurationVar(&timeout, "timeout", time.Minute*5, "The time to wait for the Instance to be created.")
 	// TODO: add a --wait flag that watches the Instance status until it's ready.
 
 	return cmd
