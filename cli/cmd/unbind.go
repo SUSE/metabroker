@@ -97,8 +97,8 @@ func NewUnbindCmd(
 		},
 	}
 
-	cmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Credential will be deleted.")
-	cmd.Flags().StringVar(&timeout, "timeout", "3m0s", "The time to wait for the Credential to be deleted.")
+	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Credential will be deleted.")
+	cmd.LocalFlags().StringVar(&timeout, "timeout", "3m0s", "The time to wait for the Credential to be deleted.")
 
 	return cmd
 }

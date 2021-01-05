@@ -110,10 +110,10 @@ func NewBindCmd(
 		},
 	}
 
-	cmd.Flags().StringVarP(&credentialNamespace, "namespace", "n", "default", "The target namespace where the Credential will be created.")
-	cmd.Flags().StringVar(&instanceNamespace, "instance-namespace", "default", "The target namespace where the Instance was created.")
-	cmd.Flags().StringVar(&secretName, "secret-name", "", "The secret name where the credentials should be created. The secret must not exist. If empty, a secret with the Credential name is created.")
-	cmd.Flags().StringVar(&timeout, "timeout", "3m0s", "The time to wait for the Credential to be created.")
+	cmd.LocalFlags().StringVarP(&credentialNamespace, "namespace", "n", "default", "The target namespace where the Credential will be created.")
+	cmd.LocalFlags().StringVar(&instanceNamespace, "instance-namespace", "default", "The target namespace where the Instance was created.")
+	cmd.LocalFlags().StringVar(&secretName, "secret-name", "", "The secret name where the credentials should be created. The secret must not exist. If empty, a secret with the Credential name is created.")
+	cmd.LocalFlags().StringVar(&timeout, "timeout", "3m0s", "The time to wait for the Credential to be created.")
 
 	return cmd
 }

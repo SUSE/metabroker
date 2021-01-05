@@ -134,9 +134,9 @@ func NewProvisionCmd(
 		},
 	}
 
-	cmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instance will be created.")
-	cmd.Flags().StringSliceVarP(&values, "values", "f", []string{}, "(repeated) The values YAML files to be used for provisioning.")
-	cmd.Flags().StringVar(&timeout, "timeout", "5m0s", "The time to wait for the Instance to be created.")
+	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instance will be created.")
+	cmd.LocalFlags().StringSliceVarP(&values, "values", "f", []string{}, "(repeated) The values YAML files to be used for provisioning.")
+	cmd.LocalFlags().StringVar(&timeout, "timeout", "5m0s", "The time to wait for the Instance to be created.")
 	// TODO: add a --wait flag that watches the Instance status until it's ready.
 
 	return cmd

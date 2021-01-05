@@ -98,9 +98,9 @@ func NewInstancesCmd(
 		},
 	}
 
-	cmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instances to be listed were created.")
-	cmd.Flags().StringVar(&timeout, "timeout", "10s", "The time to wait for the Instances to be listed.")
-	cmd.Flags().BoolVar(&noHeaders, "no-headers", false, "Don't print headers (default print headers).")
+	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instances to be listed were created.")
+	cmd.LocalFlags().StringVar(&timeout, "timeout", "10s", "The time to wait for the Instances to be listed.")
+	cmd.LocalFlags().BoolVar(&noHeaders, "no-headers", false, "Don't print headers (default print headers).")
 
 	return cmd
 }

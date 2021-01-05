@@ -87,8 +87,8 @@ func NewDeprovisionCmd(
 		},
 	}
 
-	cmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instance will be deleted.")
-	cmd.Flags().StringVar(&timeout, "timeout", "1m0s", "The time to wait for the Instance to be deleted.")
+	cmd.LocalFlags().StringVarP(&namespace, "namespace", "n", "default", "The target namespace where the Instance will be deleted.")
+	cmd.LocalFlags().StringVar(&timeout, "timeout", "1m0s", "The time to wait for the Instance to be deleted.")
 
 	return cmd
 }
