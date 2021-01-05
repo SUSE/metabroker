@@ -141,12 +141,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		instanceNeedsUpdate = true
 	}
 
-	if instance.Spec.ValidateValues == nil {
-		validateValues := true
-		instance.Spec.ValidateValues = &validateValues
-		instanceNeedsUpdate = true
-	}
-
 	if instance.HelmRef.Name == "" {
 		instance.HelmRef.Name = releaseReq.ReleaseName()
 		instanceNeedsUpdate = true
@@ -166,33 +160,31 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// TODO: update the status with validated so the controller doesn't keep performing the
 	// validation on requeues.
-	if *instance.Spec.ValidateValues {
-		schemaJSON, err := yaml.YAMLToJSON([]byte(plan.Spec.Provisioning.Values.Schema))
-		if err != nil {
-			log.Error(err, "failed to validate values")
-			// TODO: update status with invalid values.
-			return ctrl.Result{}, nil
-		}
-		schema := gojsonschema.NewBytesLoader(schemaJSON)
-		valuesJSON, err := yaml.YAMLToJSON([]byte(instance.Spec.Values))
-		if err != nil {
-			log.Error(err, "failed to validate values")
-			// TODO: update status with invalid values.
-			return ctrl.Result{}, nil
-		}
-		values := gojsonschema.NewBytesLoader(valuesJSON)
-		result, err := gojsonschema.Validate(schema, values)
-		if err != nil {
-			log.Error(err, "failed to validate values")
-			// TODO: update status with invalid values.
-			return ctrl.Result{}, nil
-		}
-		if !result.Valid() {
-			log.Error(err, "failed to validate values")
-			// TODO: update status with invalid values. Including specific errors returned from
-			// result.Errors().
-			return ctrl.Result{}, nil
-		}
+	schemaJSON, err := yaml.YAMLToJSON([]byte(plan.Spec.Provisioning.Values.Schema))
+	if err != nil {
+		log.Error(err, "failed to validate values")
+		// TODO: update status with invalid values.
+		return ctrl.Result{}, nil
+	}
+	schema := gojsonschema.NewBytesLoader(schemaJSON)
+	valuesJSON, err := yaml.YAMLToJSON([]byte(instance.Spec.Values))
+	if err != nil {
+		log.Error(err, "failed to validate values")
+		// TODO: update status with invalid values.
+		return ctrl.Result{}, nil
+	}
+	values := gojsonschema.NewBytesLoader(valuesJSON)
+	result, err := gojsonschema.Validate(schema, values)
+	if err != nil {
+		log.Error(err, "failed to validate values")
+		// TODO: update status with invalid values.
+		return ctrl.Result{}, nil
+	}
+	if !result.Valid() {
+		log.Error(err, "failed to validate values")
+		// TODO: update status with invalid values. Including specific errors returned from
+		// result.Errors().
+		return ctrl.Result{}, nil
 	}
 
 	// TODO: determine if Helm upgrade should run again or not depending on the status and event.
